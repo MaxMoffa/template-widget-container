@@ -29,6 +29,15 @@
 		return params
 	}
 
+	function saveState(state) {
+		localStorage.setItem("widget-state-save", JSON.stringify(state));
+	}
+
+	function getState() {
+		let save = localStorage.getItem("widget-state-save");
+		return save ? JSON.parse(save) : save;
+	}
+
 </script>
 
 <main>
@@ -79,6 +88,10 @@
 			}}
 
 			{getFormData}
+
+			state={getState()}
+
+			{saveState}
 
 		/>
 

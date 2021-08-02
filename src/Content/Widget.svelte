@@ -1,7 +1,7 @@
 
 <script>
     /* NON MODIFICARE -> INIZIO */ 
-    export let showResult, showError, showLoading, showMaintenance, showProgressBar, updateProgressBar, getFormData;
+    export let showResult, showError, showLoading, showMaintenance, showProgressBar, updateProgressBar, getFormData, saveState, state;
     export let WIDGET_VISIBLE = false;
     /* NON MODIFICARE -> FINE */ 
 
@@ -14,7 +14,7 @@
 
 </script>
 
-<main style={WIDGET_VISIBLE ? "" : "display: none"}>
+<main id="widget-container" style={WIDGET_VISIBLE ? "" : "display: none"}>
 
 
     <!-- ESEMPIO FUNZIONAMENTO ->  INIZIO -->
@@ -36,12 +36,3 @@
     <!-- ESEMPIO FUNZIONAMENTO ->  FINE -->
     
 </main>
-
-<style>
-
-    main {
-        width: 100%;
-        height: 100%;
-    }
-
-</style>

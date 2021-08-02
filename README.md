@@ -60,6 +60,12 @@ Questo comando mostrerà la barra di caricamento (mostra il progresso del carica
 ### updateProgressBar(text, value)
 Questo comando consentirà di eseguire un update della barra di caricamento (in modo tale da aggiornare il progresso)
 
+### saveState(state)
+Questo comando consentirà di salvare lo "stato interno" del widget, in modo tale da recuperare al prossimo riavvio la stessa visualizzazione
+
+### state
+Questo props che viene passato al widget contiene se presente lo "stato interno" precedentemente salvato dal widget
+
 ## Costanti del widget
 All'interno del file "Constants.js" vi sono svariate costanti che possono essere modificate a seconda del widget che si vuole sviluppare
 
