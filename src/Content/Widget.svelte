@@ -12,13 +12,22 @@
     });
     /* ESEMPIO FUNZIONAMENTO ->  FINE */
 
+    function downloadSquare() {
+        fetch("https://sqd.sensesquare.eu:5002/topic_attivi", {
+            body: getFormData(),
+            method: "POST"
+        })
+        .then(response => response.json())
+        .then(console.log)
+    }
+
 </script>
 
 <main id="widget-container" style={WIDGET_VISIBLE ? "" : "display: none"}>
 
 
     <!-- ESEMPIO FUNZIONAMENTO ->  INIZIO -->
-    <Button on:click={() => showError("Esempio di errore")}>
+    <Button on:click={downloadSquare}>
         Mostra errore
     </Button>
 

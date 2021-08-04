@@ -1,6 +1,6 @@
 <script>
 	import Widget from "./Content/Widget.svelte";
-	import { MaterialApp, ProgressCircular, ProgressLinear, Icon } from 'svelte-materialify';
+	import { MaterialApp, ProgressCircular, ProgressLinear, Icon, Button } from 'svelte-materialify';
 	import { mdiAlertBox, mdiAccountHardHat } from '@mdi/js';
 
 	export let token = null;
@@ -11,6 +11,9 @@
 
 	// Loading options
 	const GENERIC_LOADING = 0, PROGRESSBAR_LOADING = 1;
+
+	// Reload
+	let reload = false;
 
 	// Status widget
 	let STATUS_WIDGET = LOADING;
@@ -30,12 +33,17 @@
 	}
 
 	function saveState(state) {
-		localStorage.setItem("widget-state-save", JSON.stringify(state));
+		sessionStorage.setItem("widget-state-save", JSON.stringify(state));
 	}
 
 	function getState() {
-		let save = localStorage.getItem("widget-state-save");
+		let save = sessionStorage.getItem("widget-state-save");
 		return save ? JSON.parse(save) : save;
+	}
+
+	function reloadWidget() {
+		reload = true;
+		setTimeout(() => reload = false, 0);
 	}
 
 </script>
@@ -44,135 +52,167 @@
 
 	<MaterialApp>
 	
-		<Widget 
+		{#if !reload}
+			
+			<Widget 
 
-			WIDGET_VISIBLE={STATUS_WIDGET === DONE}
+				WIDGET_VISIBLE={STATUS_WIDGET === DONE}
 
-			showResult={() => {				
-				STATUS_WIDGET = DONE;
-				LOADING_VALUE = 0;
-				TEXT_DESCRIPTION = "";
-			}}
+				showResult={() => {				
+					STATUS_WIDGET = DONE;
+					LOADING_VALUE = 0;
+					TEXT_DESCRIPTION = "";
+				}}
 
-			showError={text => {
-				STATUS_WIDGET = ERROR;
-				LOADING_VALUE = 0;
-				TEXT_DESCRIPTION = text;
-			}}
+				showError={text => {
+					STATUS_WIDGET = ERROR;
+					LOADING_VALUE = 0;
+					TEXT_DESCRIPTION = text;
+				}}
 
-			showMaintenance={text => {
-				STATUS_WIDGET = MAINTENANCE;
-				LOADING_VALUE = 0;
-				TEXT_DESCRIPTION = text;
-			}}
+				showMaintenance={text => {
+					STATUS_WIDGET = MAINTENANCE;
+					LOADING_VALUE = 0;
+					TEXT_DESCRIPTION = text;
+				}}
 
-			showLoading={text => {				
-				STATUS_WIDGET = LOADING;
-				LOADING_TYPE = GENERIC_LOADING;
-				LOADING_VALUE = 0;
-				TEXT_DESCRIPTION = text;
-			}}
+				showLoading={text => {				
+					STATUS_WIDGET = LOADING;
+					LOADING_TYPE = GENERIC_LOADING;
+					LOADING_VALUE = 0;
+					TEXT_DESCRIPTION = text;
+				}}
 
-			showProgressBar={(text, value=0) => {
-				STATUS_WIDGET = LOADING;
-				LOADING_TYPE = PROGRESSBAR_LOADING;
-				TEXT_DESCRIPTION = text;
-				LOADING_VALUE = value;
-			}}
-
-			updateProgressBar={(text, value=0) => {
-				if(STATUS_WIDGET === LOADING && LOADING_TYPE === PROGRESSBAR_LOADING){
+				showProgressBar={(text, value=0) => {
+					STATUS_WIDGET = LOADING;
+					LOADING_TYPE = PROGRESSBAR_LOADING;
 					TEXT_DESCRIPTION = text;
 					LOADING_VALUE = value;
-				}
-			}}
+				}}
 
-			{getFormData}
+				updateProgressBar={(text, value=0) => {
+					if(STATUS_WIDGET === LOADING && LOADING_TYPE === PROGRESSBAR_LOADING){
+						TEXT_DESCRIPTION = text;
+						LOADING_VALUE = value;
+					}
+				}}
 
-			state={getState()}
+				{getFormData}
 
-			{saveState}
+				state={getState()}
 
-		/>
+				{saveState}
 
-		{#if STATUS_WIDGET === LOADING}
-		
-			{#if LOADING_TYPE === GENERIC_LOADING}
+			/>
 
-				<div class="GENERIC_CONTAINER">
+			{#if STATUS_WIDGET === LOADING}
+			
+				{#if LOADING_TYPE === GENERIC_LOADING}
 
-					<div>
-						
-						<div class="loading-element">
-							<ProgressCircular 
-								size={70} 
-								indeterminate 
-								color="success" 
-							/>
+					<div class="GENERIC_CONTAINER">
+
+						<div>
+							
+							<div class="loading-element">
+								<ProgressCircular 
+									size={70} 
+									indeterminate 
+									color="success" 
+								/>
+							</div>
+
+							<span>
+								{TEXT_DESCRIPTION}
+							</span>
+
+							<div class="btn-reload">
+								<Button size="small" on:click={reloadWidget}>
+									Riavvia
+								</Button>
+							</div>
+
 						</div>
 
-						<span>
-							{TEXT_DESCRIPTION}
-						</span>
 					</div>
 
-				</div>
+				{:else}
 
-			{:else}
+					<div class="GENERIC_CONTAINER">
 
+						<div>
+							<ProgressLinear 
+								height="16px" 
+								value={LOADING_VALUE} 
+							/>
+
+							<span>
+								{TEXT_DESCRIPTION}
+							</span>
+
+							<div class="btn-reload">
+								<Button size="small" on:click={reloadWidget}>
+									Riavvia
+								</Button>
+							</div>
+
+						</div>
+
+					</div>
+
+				{/if}
+
+			{:else if STATUS_WIDGET === ERROR}
+			
 				<div class="GENERIC_CONTAINER">
 
 					<div>
-						<ProgressLinear 
-							height="16px" 
-							value={LOADING_VALUE} 
+						<Icon 
+							size="64"
+							path={mdiAlertBox} 
 						/>
 
 						<span>
 							{TEXT_DESCRIPTION}
 						</span>
+
+						<div class="btn-reload">
+							<Button size="small" on:click={reloadWidget}>
+								Riavvia
+							</Button>
+						</div>
+
 					</div>
 
 				</div>
+			
+			{:else if STATUS_WIDGET === MAINTENANCE}
 
+				<div class="GENERIC_CONTAINER">
+
+					<div>
+						<Icon 
+							size="64"
+							path={mdiAccountHardHat} 
+						/>
+
+						<span>
+							{TEXT_DESCRIPTION}
+						</span>
+
+						<div class="btn-reload">
+							<Button size="small" on:click={reloadWidget}>
+								Riavvia
+							</Button>
+						</div>
+
+					</div>
+
+				</div>
+			
 			{/if}
 
-		{:else if STATUS_WIDGET === ERROR}
-		
-			<div class="GENERIC_CONTAINER">
-
-				<div>
-					<Icon 
-						size="64"
-						path={mdiAlertBox} 
-					/>
-
-					<span>
-						{TEXT_DESCRIPTION}
-					</span>
-				</div>
-
-			</div>
-		
-		{:else if STATUS_WIDGET === MAINTENANCE}
-
-			<div class="GENERIC_CONTAINER">
-
-				<div>
-					<Icon 
-						size="64"
-						path={mdiAccountHardHat} 
-					/>
-
-					<span>
-						{TEXT_DESCRIPTION}
-					</span>
-				</div>
-
-			</div>
-		
 		{/if}
-
+		
 	</MaterialApp>
 
 </main>
@@ -209,6 +249,13 @@
 	}
 
 	.GENERIC_CONTAINER > div > .loading-element {
+		display: grid;
+		place-items: center;
+	}
+
+	.btn-reload {
+		width: 100%;
+		padding: 16px 32px;
 		display: grid;
 		place-items: center;
 	}

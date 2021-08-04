@@ -12,7 +12,7 @@
 
   let items = [
     {
-      6: gridHelp.item({ 
+      10: gridHelp.item({ 
         x: 0,
         y: 0,
         w: WIDGET_DEFAULT_DIMENSION.w,
@@ -26,17 +26,48 @@
   ];
 
   const cols = [
-    [ 3200, 6 ],
+    [ 3200, 10 ],
   ];
+
+  async function checkToken() {
+		let params = new FormData();
+    params.append("apikey", APIKEY)
+		let response = await fetch("https://sqd.sensesquare.eu:5002/check_token", {
+			body: params,
+			method: "POST"
+		});
+		let result = await response.json();
+		return result;
+	}
 
 </script>
 
 <div class=demo-container>
-  <Grid bind:items={items} rowHeight={100} let:item let:dataItem {cols}>
-    <div class=demo-widget>
-        <Wrapper apikey={APIKEY}/>  
-    </div>
-  </Grid>
+
+  {#await checkToken()}
+
+  {:then result} 
+  
+    {#if result.response_code === 200}
+        
+      <Grid bind:items={items} rowHeight={70} let:item let:dataItem {cols}>
+        <div class=demo-widget>
+            <Wrapper apikey={APIKEY}/>  
+        </div>
+      </Grid>
+
+    {:else}
+
+    Errore nella checkToken
+
+    {/if}
+
+  {:catch e}
+
+    Errore nella checkToken
+
+  {/await}
+
 </div>
 
 <style>
