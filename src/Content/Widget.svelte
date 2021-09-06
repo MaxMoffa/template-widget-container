@@ -1,9 +1,11 @@
 
 <script>
     /* NON MODIFICARE -> INIZIO */ 
-    export let showResult, showError, showLoading, showMaintenance, showProgressBar, updateProgressBar, getFormData, saveState, state;
+    export let showResult, showError, showLoading, showMaintenance, showProgressBar, updateProgressBar, getFormData, saveState, state, showOptions_;
     export let WIDGET_VISIBLE = false;
     /* NON MODIFICARE -> FINE */ 
+
+    showOptions_();
 
     /* ESEMPIO FUNZIONAMENTO ->  INIZIO */
     import { Button } from 'svelte-materialify/src';
@@ -12,22 +14,13 @@
     });
     /* ESEMPIO FUNZIONAMENTO ->  FINE */
 
-    function downloadSquare() {
-        fetch("https://sqd.sensesquare.eu:5002/topic_attivi", {
-            body: getFormData(),
-            method: "POST"
-        })
-        .then(response => response.json())
-        .then(console.log)
-    }
-
 </script>
 
 <main id="widget-container" style={WIDGET_VISIBLE ? "" : "display: none"}>
 
 
     <!-- ESEMPIO FUNZIONAMENTO ->  INIZIO -->
-    <Button on:click={downloadSquare}>
+    <Button on:click={() => showError("Esempio di errore")}>
         Mostra errore
     </Button>
 
@@ -42,6 +35,7 @@
     <Button class="accent description-text" on:click={() => showProgressBar("Esempio di caricamento con barra", 75)}>
         Mostra caricamento con barra
     </Button>
+
     <!-- ESEMPIO FUNZIONAMENTO ->  FINE -->
     
 </main>

@@ -1,17 +1,39 @@
 <script>
-  import { WIDGET_DEFAULT_DIMENSION, WIDGET_MAX_DIMENSION, WIDGET_MIN_DIMENSION, isResizable } from "./Content/Constants";
+  import { WIDGET_DEFAULT_DIMENSION, WIDGET_MAX_DIMENSION, WIDGET_MIN_DIMENSION, isResizable, BACKGROUND, WIDGET_NAME, WIDGET_ID } from "./Content/Constants";
   import Wrapper from "./Wrapper.svelte";
+  import WidgetOptions from './widgetOptions.svelte';
   import Grid from "svelte-grid";
   import gridHelp from "svelte-grid/build/helper/index.mjs";
+  import { MaterialApp } from "svelte-materialify";
+  import {onMount} from 'svelte'
 
   // Get APIKEY
   const url = new URL(window.location.href);
   const APIKEY = url.searchParams.get("apikey");
 
+  // Options visibility
+  let isReloading = false;
+  let isOptionsVisible = null;
+  let optionsState = null;
+  let optionsDataItem = null;
+
   const id = () => "_" + Math.random().toString(36).substr(2, 9);
 
-  let items = [
-    {
+  let items = [];
+
+  const cols = [
+    [ 3200, 10 ],
+  ];
+
+  onMount(() => {
+
+    addWidget()
+    .then(() => console.log("widget loaded"));
+
+  });
+
+  async function addWidget() {
+    items.push({
       10: gridHelp.item({ 
         x: 0,
         y: 0,
@@ -22,12 +44,12 @@
         fixed: !isResizable
       }),
       id: id(),
-    }
-  ];
-
-  const cols = [
-    [ 3200, 10 ],
-  ];
+      widgetId: WIDGET_ID,
+      background: BACKGROUND,
+      name: WIDGET_NAME,
+      widget: (await import("./Content/Widget.svelte")).default
+    });
+  }
 
   async function checkToken() {
 		let params = new FormData();
@@ -40,53 +62,108 @@
 		return result;
 	}
 
+  function reload() {
+    isReloading = true;
+    setTimeout(() => {
+      isReloading = false;
+    }, 100);
+  }
+
 </script>
 
-<div class=demo-container>
+<MaterialApp>
 
-  {#await checkToken()}
+  <div class=demo-container>
 
-  {:then result} 
-  
-    {#if result.response_code === 200}
-        
-      <Grid bind:items={items} rowHeight={70} let:item let:dataItem {cols}>
-        <div class=demo-widget>
-            <Wrapper apikey={APIKEY}/>  
-        </div>
-      </Grid>
+    {#await checkToken()}
 
-    {:else}
+      ...
 
-    Errore nella checkToken
+    {:then result} 
+    
+      {#if result.response_code === 200}
+          
+        {#if !isReloading}
 
-    {/if}
+          <Grid bind:items={items} rowHeight={70} let:item let:dataItem {cols}>
 
-  {:catch e}
+            <div class=demo-widget style={`background: ${dataItem.background} !important`}>
+                <Wrapper 
+                  widget={dataItem.widget}
+                  apikey={APIKEY}
+                  on:changeOptions={(e) => {
+                    isOptionsVisible = e.detail.widget;
+                    optionsState = e.detail.state;
+                    optionsDataItem = dataItem;
+                  }}  
+                />  
+            </div>
+          
+          </Grid>
 
-    Errore nella checkToken
+        {/if}
 
-  {/await}
+        {#if isOptionsVisible !== null}
 
-</div>
+          <WidgetOptions 
+              widget={isOptionsVisible} 
+              apikey={APIKEY} 
+              state={optionsState} 
+              on:saveState={(e) => {
+                  optionsDataItem.state = e.detail;
+                  //onGridChange();
+                  isOptionsVisible = null;
+                  optionsDataItem = null;
+                  optionsState = null;
+                  reload();
+              }}
+              on:close={() => {
+                  isOptionsVisible = null;
+                  optionsDataItem = null;
+                  optionsState = null;
+              }}
+          />
+
+      {/if}
+
+      {:else}
+
+      Errore nella checkToken
+
+      {/if}
+
+    {:catch e}
+
+      Errore nella checkToken
+
+    {/await}
+
+  </div>
+
+</MaterialApp>
 
 <style>
+  
   :global(body){
-      background-color: #f1f1f1;
+    background-color: #f1f1f1;
+  }
+
+  :global(.s-app){
+    background-color: rgba(0,0,0,0) !important;
   }
 
   .demo-widget {
-      height: 100%;
-      width: 100%;
-      border-radius: 16px !important;
-      background-color: #fff;
-      padding: 8px;
-      overflow: auto;
+    height: 100%;
+    width: 100%;
+   border-radius: 16px !important;
+    background-color: #fff;
+    padding: 8px;
+    overflow: auto;
   }
 
   .demo-container {
-      max-width: 3200px;
-      width: 100%;
-      margin: 0 auto;
+    max-width: 3200px;
+    width: 100%;
+    margin: 0 auto;
   }
 </style>
