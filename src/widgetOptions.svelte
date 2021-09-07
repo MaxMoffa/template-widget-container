@@ -139,7 +139,8 @@ import { each } from 'svelte/internal';
 
                                                 <input 
                                                     type="date" 
-                                                    on:change={(e) => {                                                                                
+                                                    value={state[option.key] ? new Date(state[option.key]).toISOString().split("T")[0] : null}
+                                                    on:change={(e) => {                                                               
                                                         state[option.key] = e.target.valueAsNumber;
                                                         reloadWidget();
                                                     }} 
@@ -262,7 +263,6 @@ import { each } from 'svelte/internal';
     }
 
     .option-list-element > input[type=date] {
-        text-align: center;
         border-bottom-color: var(--theme-text-fields-border);
         border-bottom-style: solid;
         border-bottom-width: 1px;

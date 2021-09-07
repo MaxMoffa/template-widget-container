@@ -1,5 +1,5 @@
 <script>
-  import { WIDGET_DEFAULT_DIMENSION, WIDGET_MAX_DIMENSION, WIDGET_MIN_DIMENSION, isResizable, BACKGROUND, WIDGET_NAME, WIDGET_ID, CONFIGURATION } from "./Content/Constants";
+  import { WIDGET_DEFAULT_DIMENSION, WIDGET_MAX_DIMENSION, WIDGET_MIN_DIMENSION, isResizable, BACKGROUND, WIDGET_NAME, WIDGET_ID, CONFIGURATION, DEFAULT_CONFIGURATION } from "./Content/Constants";
   import Wrapper from "./Wrapper.svelte";
   import WidgetOptions from './widgetOptions.svelte';
   import Grid from "svelte-grid";
@@ -27,6 +27,8 @@
 
   onMount(() => {
 
+    sessionStorage.setItem("widget-state-save", JSON.stringify(DEFAULT_CONFIGURATION));
+
     addWidget()
     .then(() => console.log("widget loaded"));
 
@@ -47,7 +49,7 @@
       widgetId: WIDGET_ID,
       background: BACKGROUND,
       name: WIDGET_NAME,
-      state: null,
+      state: DEFAULT_CONFIGURATION,
       widget: (await import("./Content/Widget.svelte")).default
     });
   }

@@ -54,5 +54,11 @@ export const CONFIGURATION = [
     }
 ];
 
+export const DEFAULT_CONFIGURATION = {
+    btn_color: "red",
+    birthday_date: null,
+    btn_text_color: false
+};
+
 // Author
 export const AUTHOR = "Mario Rossi";
