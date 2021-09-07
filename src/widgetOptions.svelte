@@ -1,15 +1,16 @@
 <script>
     import { onMount } from 'svelte';
-    import { Button, Col, Select, Chip, Subheader } from 'svelte-materialify/src';
+    import { Checkbox, Col, Select, Chip, Subheader } from 'svelte-materialify/src';
     import Wapper from "./Wrapper.svelte";
 
     import { createEventDispatcher } from 'svelte';
+import { each } from 'svelte/internal';
 	const dispatch = createEventDispatcher();
 
     export let widget = null;
     export let name = "Widget Name";
     export let state = null
-    export let options = [];
+    export let configuration = [];
     export let apikey = null;
 
     let centraline = ["ITPIETOR33456M", "ITPIETOR23456M", "ITPIETOR13456M"];
@@ -18,12 +19,13 @@
     onMount(() => {
 
         if(state === null){
-
-            state = {
-                centralina: null,
-                date: null
-            };
-
+            state = {};
+            configuration.forEach(section => {
+                section.options.forEach(element => {
+                    state[element.key] = null;
+                });
+            });
+            console.log(state);
         }
 
     })
@@ -55,7 +57,7 @@
             <div class="title">
 
                 <span class="title-text">
-                    Gestione centraline
+                    {name}
                 </span>
 
             </div>
@@ -70,6 +72,7 @@
                             {widget}
                             state={JSON.parse(JSON.stringify(state))}
                             {apikey}
+                            showOptions={false}
                         />
 
                     {/if}
@@ -93,12 +96,68 @@
             <div class="options">
 
                 <Col>
-    
-                    <Select filled items={centraline} bind:value={state.centralina} on:change={reloadWidget}>
-                        Centralina
-                    </Select>
-        
-                    <input type="date" id="date-selector-centraline" valueAsDate={state.date} on:change={(e) => state.date = e.target.valueAsDate} on:change={reloadWidget}>
+
+                    {#each configuration as section}
+
+                        <div class="section-options">
+
+                            <Subheader>
+                                {section.name}
+                            </Subheader>
+
+                            <div class="options-container">
+                    
+                                {#each section.options as option}
+                                                    
+                                    {#if state !== null && Object.hasOwnProperty.bind(state)(option.key)}
+
+                                        <div class="option-list-element">
+                                    
+                                            {#if option.type === "select"}
+                                            
+                                                <div class="text-subtitle-1 grey-text text-darken-1">
+                                                    {option.name}
+                                                </div>
+
+                                                <Select items={option.options} bind:value={state[option.key]} on:change={reloadWidget}>
+                                                </Select>
+
+                                            {:else if option.type === "checkbox"}
+
+                                                <Checkbox color="accent" checked={state[option.key]} on:change={(e) => {
+                                                    state[option.key] = e.target.checked;
+                                                    reloadWidget();
+                                                }}>
+                                                    {option.name}
+                                                </Checkbox>
+
+                                            {:else if option.type === "date"}
+
+                                                <div class="text-subtitle-1 grey-text text-darken-1">
+                                                    {option.name}
+                                                </div>
+
+                                                <input 
+                                                    type="date" 
+                                                    on:change={(e) => {                                                                                
+                                                        state[option.key] = e.target.valueAsNumber;
+                                                        reloadWidget();
+                                                    }} 
+                                                />
+
+                                            {/if}
+
+                                        </div>
+
+                                    {/if}
+
+                                {/each}
+                            
+                            </div>
+
+                        </div>
+
+                    {/each}
     
                 </Col>
 
@@ -157,7 +216,8 @@
         background-color: #a1e5ab;
         display: flex;
         flex-direction: column;
-        padding: 0 32px;
+        padding: 0 6px;
+        border-radius:  0 16px 16px 0;
     }
 
     main > .container > .options > .header {
@@ -179,6 +239,33 @@
         padding: 8px;
         overflow: auto;
         border: 1px solid grey
+    }
+
+    .section-options {
+        width: 100%;
+        height: auto;
+        padding: 6px 4px;
+        background-color: #fff;
+        border-radius: 12px;
+    }
+
+    .section-options > .options-container {
+        padding: 16px 20px;
+    }
+
+    .option-list-element {
+        padding: 12px 0;
+    }
+
+    .option-list-element > * {
+        width: 100%;
+    }
+
+    .option-list-element > input[type=date] {
+        text-align: center;
+        border-bottom-color: var(--theme-text-fields-border);
+        border-bottom-style: solid;
+        border-bottom-width: 1px;
     }
 
 </style>

@@ -16,5 +16,43 @@ export const WIDGET_MIN_DIMENSION =  { w: 1, h: 1 };
 // Widget style
 export const BACKGROUND = "#fff";
 
+// Widget configuration
+export const CONFIGURATION = [
+    {
+        name: "Generale",
+        options: [
+            {
+                name: "Colore pulsanti",
+                key: "btn_color",
+                type: "select",
+                options: [
+                    {
+                        name: "Standard",
+                        value: "standard"
+                    },
+                    {
+                        name: "Rosso",
+                        value: "red"
+                    },
+                    {
+                        name: "Blu",
+                        value: "blue"
+                    }
+                ]
+            },
+            {
+                name: "Data compleanno",
+                key: "birthday_date",
+                type: "date"
+            },
+            {
+                name: "Testo pulsanti bold",
+                key: "btn_text_color",
+                type: "checkbox"
+            }
+        ]
+    }
+];
+
 // Author
 export const AUTHOR = "Mario Rossi";

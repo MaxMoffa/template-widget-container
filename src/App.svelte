@@ -1,5 +1,5 @@
 <script>
-  import { WIDGET_DEFAULT_DIMENSION, WIDGET_MAX_DIMENSION, WIDGET_MIN_DIMENSION, isResizable, BACKGROUND, WIDGET_NAME, WIDGET_ID } from "./Content/Constants";
+  import { WIDGET_DEFAULT_DIMENSION, WIDGET_MAX_DIMENSION, WIDGET_MIN_DIMENSION, isResizable, BACKGROUND, WIDGET_NAME, WIDGET_ID, CONFIGURATION } from "./Content/Constants";
   import Wrapper from "./Wrapper.svelte";
   import WidgetOptions from './widgetOptions.svelte';
   import Grid from "svelte-grid";
@@ -47,6 +47,7 @@
       widgetId: WIDGET_ID,
       background: BACKGROUND,
       name: WIDGET_NAME,
+      state: null,
       widget: (await import("./Content/Widget.svelte")).default
     });
   }
@@ -91,6 +92,7 @@
                 <Wrapper 
                   widget={dataItem.widget}
                   apikey={APIKEY}
+                  state={dataItem.state}
                   on:changeOptions={(e) => {
                     isOptionsVisible = e.detail.widget;
                     optionsState = e.detail.state;
@@ -106,12 +108,13 @@
         {#if isOptionsVisible !== null}
 
           <WidgetOptions 
+              name={WIDGET_NAME}
               widget={isOptionsVisible} 
               apikey={APIKEY} 
               state={optionsState} 
+              configuration={CONFIGURATION}
               on:saveState={(e) => {
                   optionsDataItem.state = e.detail;
-                  //onGridChange();
                   isOptionsVisible = null;
                   optionsDataItem = null;
                   optionsState = null;

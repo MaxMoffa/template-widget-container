@@ -7,6 +7,7 @@
 	export let token = null;
 	export let apikey = null;
 	export let state = null;
+	export let showOptions = true;
 	export let widget;
 
 	// Status options
@@ -80,6 +81,8 @@
 	}
 
 	function getState() {
+		if(state !== null)
+			saveState(state);
 		let save = sessionStorage.getItem("widget-state-save");
 		return save ? JSON.parse(save) : save;
 	}
@@ -90,6 +93,8 @@
 	}
 
 	function showOptions_() {
+		if(!showOptions)
+			return;
 		showOptionsBtn = true;
 		if(!state){
 			dispatch("changeOptions", {

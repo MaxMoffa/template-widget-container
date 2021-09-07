@@ -7,6 +7,8 @@
 
     showOptions_();
 
+    console.log(state);
+
     /* ESEMPIO FUNZIONAMENTO ->  INIZIO */
     import { Button } from 'svelte-materialify/src';
     setTimeout(() => {
