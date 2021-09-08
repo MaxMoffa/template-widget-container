@@ -4,7 +4,6 @@
     import Wapper from "./Wrapper.svelte";
 
     import { createEventDispatcher } from 'svelte';
-import { each } from 'svelte/internal';
 	const dispatch = createEventDispatcher();
 
     export let widget = null;
@@ -12,8 +11,8 @@ import { each } from 'svelte/internal';
     export let state = null
     export let configuration = [];
     export let apikey = null;
+    export let background = "#ffffff";
 
-    let centraline = ["ITPIETOR33456M", "ITPIETOR23456M", "ITPIETOR13456M"];
     let showWidget = true;
     
     onMount(() => {
@@ -64,7 +63,7 @@ import { each } from 'svelte/internal';
 
             <div class="widget">
 
-                <div class="widget-container">
+                <div class="widget-container" style={`background: ${background}`}>
 
                     {#if widget !== null && showWidget}
                     
@@ -239,7 +238,7 @@ import { each } from 'svelte/internal';
         background-color: #fff;
         padding: 8px;
         overflow: auto;
-        border: 1px solid grey
+        border: 1px solid grey;
     }
 
     .section-options {

@@ -115,6 +115,7 @@
               apikey={APIKEY} 
               state={optionsState} 
               configuration={CONFIGURATION}
+              background={BACKGROUND}
               on:saveState={(e) => {
                   optionsDataItem.state = e.detail;
                   isOptionsVisible = null;
