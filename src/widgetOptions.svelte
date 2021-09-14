@@ -10,6 +10,7 @@
     export let name = "Widget Name";
     export let state = null
     export let configuration = [];
+    export let token = null;
     export let apikey = null;
     export let background = "#ffffff";
 
@@ -49,42 +50,55 @@
     
 }}>
 
-    <div class="container">
+    <div class="container" style={widget === null ? "width: 100%; height: 100%; border-radius: 0" : ""}>
 
-        <div class="preview">
+        {#if widget !== null && showWidget}
 
-            <div class="title">
+            <div class="preview">
 
-                <span class="title-text">
-                    {name}
-                </span>
+                <div class="title">
 
-            </div>
+                    <span class="title-text">
+                        {name}
+                    </span>
 
-            <div class="widget">
+                </div>
 
-                <div class="widget-container" style={`background: ${background}`}>
+                <div class="widget">
 
-                    {#if widget !== null && showWidget}
-                    
+                    <div class="widget-container" style={`background: ${background}`}>
+                        
                         <Wapper 
                             {widget}
                             state={JSON.parse(JSON.stringify(state))}
                             {apikey}
+                            {token}
                             showOptions={false}
                         />
 
-                    {/if}
+                    </div>
 
                 </div>
 
             </div>
+        
+        {/if}
 
-        </div>
+        <div class="options" style={widget === null ? "border-radius: 0" : ""}>
 
-        <div class="options">
+            <div class="header" style={widget === null ? "padding: 0 16px" : ""}>
 
-            <div class="header">
+                {#if widget === null}
+
+                    <div class="title">
+
+                        <span class="title-text">
+                            {name}
+                        </span>
+
+                    </div>
+                
+                {/if}
 
                 <Chip class="blue white-text" on:click={saveState}>
                     Save
@@ -180,6 +194,7 @@
         background-color: rgba(255, 255, 255, 0.6);
         display: grid;
         place-items: center;
+        z-index: 1006;
     }
 
     main > .container {
@@ -224,7 +239,12 @@
         flex: 1;
         display: grid;
         align-items: center;
-        justify-content: right;
+        justify-items: right;
+        grid-auto-flow: column;
+    }
+
+    main > .container > .options > .header > .title {
+        justify-self: left !important;
     }
 
     main > .container > .options > .options {
