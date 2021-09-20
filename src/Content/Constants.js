@@ -54,6 +54,7 @@ export const CONFIGURATION = [
     }
 ];
 
+// Default configuration
 export const DEFAULT_CONFIGURATION = {
     btn_color: "red",
     birthday_date: null,
