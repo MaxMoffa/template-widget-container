@@ -140,6 +140,14 @@
 			state={getState()}
 			{saveState}
 			{showOptions_}
+			on:changeOptions={() => {
+				if(showOptions){
+					dispatch("changeOptions", {
+						widget: widget,
+						state: state
+					});
+				}
+			}}
 		/>
 
 		{#if STATUS_WIDGET === LOADING}
@@ -216,6 +224,22 @@
 						<Button size="small" on:click={reloadWidget}>
 							Riavvia
 						</Button>
+
+						{#if state}
+
+							<Button class=accent size="small" on:click={() => {
+								if(showOptions){
+									dispatch("changeOptions", {
+										widget: widget,
+										state: state
+									});
+								}
+							}}>
+								Opzioni
+							</Button>
+
+						{/if}
+
 					</div>
 
 				</div>
