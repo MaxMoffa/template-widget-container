@@ -100,6 +100,9 @@
                     optionsState = e.detail.state;
                     optionsDataItem = dataItem;
                   }}  
+                  on:saveState={(e) => {                    
+                      dataItem.state = e.detail;
+                  }}
                 />  
             </div>
           
@@ -161,7 +164,7 @@
   .demo-widget {
     height: 100%;
     width: 100%;
-   border-radius: 16px !important;
+    border-radius: 16px !important;
     background-color: #fff;
     padding: 8px;
     overflow: auto;

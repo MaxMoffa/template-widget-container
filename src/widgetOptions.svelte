@@ -259,6 +259,7 @@
         padding: 8px;
         overflow: auto;
         border: 1px solid grey;
+        transform: translateZ(0);
     }
 
     .section-options {

@@ -76,15 +76,14 @@
 		return params
 	}
 
-	function saveState(state) {
-		sessionStorage.setItem("widget-state-save", JSON.stringify(state));
+	function saveState(state, reload=true) {
+		dispatch("saveState", state);
+		if(reload)
+			reloadWidget();
 	}
 
 	function getState() {
-		if(state !== null)
-			saveState(state);
-		let save = sessionStorage.getItem("widget-state-save");
-		return save ? JSON.parse(save) : save;
+		return state;
 	}
 
 	function reloadWidget() {
@@ -101,6 +100,15 @@
 				widget: widget,
 				state: null
 			})
+		}
+	}
+
+	function openOptions() {
+		if(showOptions){
+			dispatch("changeOptions", {
+				widget: widget,
+				state: state
+			});
 		}
 	}
 
@@ -140,6 +148,7 @@
 			state={getState()}
 			{saveState}
 			{showOptions_}
+			{openOptions}
 			on:changeOptions={() => {
 				if(showOptions){
 					dispatch("changeOptions", {
