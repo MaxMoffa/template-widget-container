@@ -14,7 +14,8 @@
     export let apikey = null;
     export let background = "#ffffff";
 
-    let showWidget = true;
+    let reloadWidgetOptions = true;
+    let old_state = {...state};
     
     onMount(() => {
 
@@ -31,14 +32,45 @@
     })
 
     function reloadWidget() {
-        showWidget = false;
+        
+        // Verify changes
+        let isChanged = false;
+        Object.keys(old_state).forEach(key => {
+            isChanged = isChanged || old_state[key] !== state[key];
+        });
+        if(!isChanged)
+            return;
+        else
+            old_state = {...state};
+        
+        // Reload widget
         setTimeout(() => {
-            showWidget = true;
-        }, 100);
+            reloadWidgetOptions = false;
+            setTimeout(() => {
+                reloadWidgetOptions = true;
+            }, 0);
+        }, 0);
     }
 
     function saveState() {
+        console.log(state);
         dispatch("saveState", state);
+    }
+
+    async function getAsyncSelect(url) {
+        let params = new FormData();
+        if(apikey)
+            params.append("apikey", apikey);
+        else
+            params.append("token", token);
+        let result = await (await (fetch(url, {method: "POST", body: params}))).json();
+        return result.result;
+    }
+
+    function isDisabled(option) {
+        if(option.hasOwnProperty("disabled") && typeof(option.disabled) === "function")
+            return option.disabled(state);
+        return false;
     }
 
 </script>
@@ -52,7 +84,7 @@
 
     <div class="container" style={widget === null ? "width: 100%; height: 100%; border-radius: 0" : ""}>
 
-        {#if widget !== null && showWidget}
+        {#if widget !== null}
 
             <div class="preview">
 
@@ -67,14 +99,18 @@
                 <div class="widget">
 
                     <div class="widget-container" style={`background: ${background}`}>
+
+                        {#if reloadWidgetOptions}
                         
-                        <Wapper 
-                            {widget}
-                            state={JSON.parse(JSON.stringify(state))}
-                            {apikey}
-                            {token}
-                            showOptions={false}
-                        />
+                            <Wapper 
+                                {widget}
+                                state={JSON.parse(JSON.stringify(state))}
+                                {apikey}
+                                {token}
+                                showOptions={false}
+                            />
+
+                        {/if}
 
                     </div>
 
@@ -110,68 +146,97 @@
 
                 <Col>
 
-                    {#each configuration as section}
+                    {#if reloadWidgetOptions}
+                        
+                        {#each configuration as section}
 
-                        <div class="section-options">
+                            <div class="section-options">
 
-                            <Subheader>
-                                {section.name}
-                            </Subheader>
+                                <Subheader>
+                                    {section.name}
+                                </Subheader>
 
-                            <div class="options-container">
-                    
-                                {#each section.options as option}
-                                                    
-                                    {#if state !== null && Object.hasOwnProperty.bind(state)(option.key)}
+                                <div class="options-container">
+                        
+                                    {#each section.options as option}
+                                                        
+                                        {#if state !== null && Object.hasOwnProperty.bind(state)(option.key)}
 
-                                        <div class="option-list-element">
-                                    
-                                            {#if option.type === "select"}
-                                            
-                                                <div class="text-subtitle-1 grey-text text-darken-1">
-                                                    {option.name}
-                                                </div>
+                                            <div class="option-list-element">
+                                        
+                                                {#if option.type === "select"}
+                                                
+                                                    <div class="text-subtitle-1 grey-text text-darken-1">
+                                                        {option.name}
+                                                    </div>
 
-                                                <Select items={option.options} bind:value={state[option.key]} on:change={reloadWidget}>
-                                                </Select>
+                                                    <Select disabled={isDisabled(option)} items={option.options} bind:value={state[option.key]} on:change={reloadWidget}>
+                                                    </Select>
 
-                                            {:else if option.type === "checkbox"}
+                                                {:else if option.type === "checkbox"}
 
-                                                <Checkbox color="accent" checked={state[option.key]} on:change={(e) => {
-                                                    state[option.key] = e.target.checked;
-                                                    reloadWidget();
-                                                }}>
-                                                    {option.name}
-                                                </Checkbox>
-
-                                            {:else if option.type === "date"}
-
-                                                <div class="text-subtitle-1 grey-text text-darken-1">
-                                                    {option.name}
-                                                </div>
-
-                                                <input 
-                                                    type="date" 
-                                                    value={state[option.key] ? new Date(state[option.key]).toISOString().split("T")[0] : null}
-                                                    on:change={(e) => {                                                               
-                                                        state[option.key] = e.target.valueAsNumber;
+                                                    <Checkbox disabled={isDisabled(option)} color="accent" checked={state[option.key]} on:change={(e) => {
+                                                        state[option.key] = e.target.checked;
                                                         reloadWidget();
-                                                    }} 
-                                                />
+                                                    }}>
+                                                        {option.name}
+                                                    </Checkbox>
 
-                                            {/if}
+                                                {:else if option.type === "date"}
 
-                                        </div>
+                                                    <div class="text-subtitle-1 grey-text text-darken-1">
+                                                        {option.name}
+                                                    </div>
 
-                                    {/if}
+                                                    <input 
+                                                        disabled={isDisabled(option)}
+                                                        type="date" 
+                                                        value={state[option.key] ? new Date(state[option.key]).toISOString().split("T")[0] : null}
+                                                        on:change={(e) => {                                                               
+                                                            state[option.key] = e.target.valueAsNumber;
+                                                            reloadWidget();
+                                                        }} 
+                                                    />
 
-                                {/each}
-                            
+                                                {:else if option.type === "select_async"}
+
+                                                    <div class="text-subtitle-1 grey-text text-darken-1">
+                                                        {option.name}
+                                                    </div>
+
+                                                    {#await getAsyncSelect(option.url)}
+                                                        ...
+                                                    {:then options} 
+
+                                                        <Select disabled={isDisabled(option)} items={options} bind:value={state[option.key]} on:change={reloadWidget}>
+                                                        </Select>
+
+                                                    {/await}
+
+                                                {:else if option.type === "select_multiple"}
+                                                
+                                                    <div class="text-subtitle-1 grey-text text-darken-1">
+                                                        {option.name}
+                                                    </div>
+
+                                                    <Select disabled={isDisabled(option)} multiple items={option.options} bind:value={state[option.key]} on:change={reloadWidget}>
+                                                    </Select>
+
+                                                {/if}
+
+                                            </div>
+
+                                        {/if}
+
+                                    {/each}
+                                
+                                </div>
+
                             </div>
 
-                        </div>
+                        {/each}
 
-                    {/each}
+                    {/if}
     
                 </Col>
 
@@ -249,6 +314,7 @@
 
     main > .container > .options > .options {
         flex: 9;
+        overflow-y: auto;
     }
 
     .widget-container {
@@ -268,6 +334,7 @@
         padding: 6px 4px;
         background-color: #fff;
         border-radius: 12px;
+        margin-bottom: 16px;
     }
 
     .section-options > .options-container {

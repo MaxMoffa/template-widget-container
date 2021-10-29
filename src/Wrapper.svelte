@@ -234,7 +234,7 @@
 							Riavvia
 						</Button>
 
-						{#if state}
+						{#if state && showOptions}
 
 							<Button class=accent size="small" on:click={() => {
 								if(showOptions){
@@ -273,6 +273,22 @@
 						<Button size="small" on:click={reloadWidget}>
 							Riavvia
 						</Button>
+
+						{#if state && showOptions}
+
+							<Button class=accent size="small" on:click={() => {
+								if(showOptions){
+									dispatch("changeOptions", {
+										widget: widget,
+										state: state
+									});
+								}
+							}}>
+								Opzioni
+							</Button>
+
+						{/if}
+
 					</div>
 
 				</div>
