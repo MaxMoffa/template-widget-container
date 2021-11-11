@@ -6,7 +6,7 @@
   import gridHelp from "svelte-grid/build/helper/index.mjs";
   import { MaterialApp, Button, Icon } from "svelte-materialify/src";
   import { onMount } from 'svelte';
-  import { mdiClose, mdiDelete, mdiPencil } from "@mdi/js";
+  import { mdiContentSave, mdiDelete, mdiPencil } from "@mdi/js";
 
   // Get APIKEY
   const url = new URL(window.location.href);
@@ -211,8 +211,8 @@
 
   {#if isResizable}
 
-    <Button on:click={changeMode} fab class="red" style="position: absolute; top: 12px; right: 12px">
-      <Icon path={mdiClose} />
+    <Button on:click={changeMode} fab class="blue" style="position: absolute; top: 12px; right: 12px">
+      <Icon path={mdiContentSave} />
     </Button>
 
   {:else}
