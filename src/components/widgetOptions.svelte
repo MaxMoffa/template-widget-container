@@ -1,8 +1,8 @@
 <script>
     import { onMount } from 'svelte';
-    import { Checkbox, Col, Select, Chip, Subheader } from 'svelte-materialify/src';
+    import { Checkbox, Col, Select, Chip, Subheader, AppBar } from 'svelte-materialify/src';
     import Wapper from "./Wrapper.svelte";
-
+    import PlaceSelector from './PlaceSelector.svelte';
     import { createEventDispatcher } from 'svelte';
 	const dispatch = createEventDispatcher();
 
@@ -16,6 +16,7 @@
 
     let reloadWidgetOptions = true;
     let old_state = {...state};
+    let shadowHeader = "elevation-0";
     
     onMount(() => {
 
@@ -57,13 +58,20 @@
         dispatch("saveState", state);
     }
 
-    async function getAsyncSelect(url) {
+    function getParams() {
         let params = new FormData();
         if(apikey)
             params.append("apikey", apikey);
         else
             params.append("token", token);
+        return params;
+    }
+
+    async function getAsyncSelect(url, map) {
+        let params = getParams();
         let result = await (await (fetch(url, {method: "POST", body: params}))).json();
+        if(map && typeof(map) === "function")
+            return result.result.map(map);
         return result.result;
     }
 
@@ -71,6 +79,14 @@
         if(option.hasOwnProperty("disabled") && typeof(option.disabled) === "function")
             return option.disabled(state);
         return false;
+    }
+    
+    function updateShadow(e) {
+        let scrollTop = e.target.scrollTop;
+        if(scrollTop === 0)
+            shadowHeader = "elevation-0"
+        else
+            shadowHeader = "elevation-1"
     }
 
 </script>
@@ -122,31 +138,23 @@
 
         <div class="options" style={widget === null ? "border-radius: 0" : ""}>
 
-            <div class="header" style={widget === null ? "padding: 0 16px" : ""}>
-
-                {#if widget === null}
-
-                    <div class="title">
-
-                        <span class="title-text">
-                            {name}
-                        </span>
-
-                    </div>
-                
-                {/if}
-
-                <Chip class="blue white-text" on:click={saveState}>
+            <AppBar class={shadowHeader} style="background-color: #eeeeee; height: fit-content; flex: 0">
+                <span slot="title">
+                    {#if widget === null}
+                        {name}
+                    {/if}
+                </span>
+                <div style="flex-grow:1" />
+                <Chip class="blue white-text" on:click={saveState} link>
                     Save
                 </Chip>
+            </AppBar>
 
-            </div>
-
-            <div class="options">
+            <div class="options" on:scroll={updateShadow}>
 
                 <Col>
 
-                    {#if reloadWidgetOptions}
+                    {#if true}
                         
                         {#each configuration as section}
 
@@ -204,7 +212,7 @@
                                                         {option.name}
                                                     </div>
 
-                                                    {#await getAsyncSelect(option.url)}
+                                                    {#await getAsyncSelect(option.url, option.map)}
                                                         ...
                                                     {:then options} 
 
@@ -221,6 +229,19 @@
 
                                                     <Select disabled={isDisabled(option)} multiple items={option.options} bind:value={state[option.key]} on:change={reloadWidget}>
                                                     </Select>
+
+                                                {:else if option.type === "place"}
+                                                
+                                                    <div class="text-subtitle-1 grey-text text-darken-1">
+                                                        {option.name}
+                                                    </div>
+
+                                                    <div class="map-widget-options rounded">
+                                                        <PlaceSelector
+                                                            bind:placeSelected={state[option.key]}
+                                                            params={getParams()} 
+                                                        />
+                                                    </div>
 
                                                 {/if}
 
@@ -263,8 +284,8 @@
     }
 
     main > .container {
-        width: 80%;
-        height: 80%;
+        width: 80% !important;
+        height: 80% !important;
         background-color: #fff;
         border-radius: 16px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
@@ -292,29 +313,18 @@
     }
 
     main > .container > .options {
-        flex: 2;
-        background-color: #a1e5ab;
+        flex: 2.5;
+        background-color: #eeeeee;
         display: flex;
         flex-direction: column;
-        padding: 0 6px;
         border-radius:  0 16px 16px 0;
     }
 
-    main > .container > .options > .header {
-        flex: 1;
-        display: grid;
-        align-items: center;
-        justify-items: right;
-        grid-auto-flow: column;
-    }
-
-    main > .container > .options > .header > .title {
-        justify-self: left !important;
-    }
-
     main > .container > .options > .options {
-        flex: 9;
+        flex: 1;
         overflow-y: auto;
+        padding: 0 6px;
+        flex-basis: 0;
     }
 
     .widget-container {
@@ -353,6 +363,11 @@
         border-bottom-color: var(--theme-text-fields-border);
         border-bottom-style: solid;
         border-bottom-width: 1px;
+    }
+
+    .option-list-element > .map-widget-options {
+        background-color: #eeeeee;
+        height: 300px !important;
     }
 
 </style>

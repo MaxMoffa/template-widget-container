@@ -22,17 +22,32 @@ $error-color: #f44336;
 
 .title-text {
     color: $primary-text;
-    font-family: Poppins-Medium;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
 }
 
 .secondary-title-text {
     color: $primary-text;
-    font-family: Poppins-Thin;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 100;
 }
 
 .description-text {
     color: $description-text;
-    font-family: Poppins-Regular;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 400;
+}
+
+.primary-text {
+    color: $primary-color;
+}
+
+.secondary-text {
+    color: $secondary-color;
+}
+
+.accent-text {
+    color: $accent-color;
 }
 
 /*
@@ -67,20 +82,20 @@ $error-color: #f44336;
     Fonts
 */
 
-@font-face {
-    font-family: Poppins-Medium;
-    src: url(../media/Fonts/Poppins-Medium.ttf);
-}
+// @font-face {
+//     font-family: Poppins-Medium;
+//     src: url(https://github.com/MaxMoffa/public-files/raw/main/Poppins-Medium.ttf);
+// }
 
-@font-face {
-    font-family: Poppins-Thin;
-    src: url(../media/Fonts/Poppins-Thin.ttf);
-}
+// @font-face {
+//     font-family: Poppins-Thin;
+//     src: url(https://github.com/MaxMoffa/public-files/raw/main/Poppins-Thin.ttf);
+// }
 
-@font-face {
-    font-family: Poppins-Regular;
-    src: url(../media/Fonts/Poppins-Regular.ttf);
-}
+// @font-face {
+//     font-family: Poppins-Regular;
+//     src: url(https://github.com/MaxMoffa/public-files/raw/main/Poppins-Regular.ttf);
+// }
 
 /*
     General tags
@@ -88,9 +103,4 @@ $error-color: #f44336;
 
 .svlt-grid-shadow {
     background-color: #FDEAD3 !important;
-}
-
-#widget-container {
-    width: 100%;
-    height: 100%;
 }

@@ -1,5 +1,5 @@
 <script>
-	import { ProgressCircular, ProgressLinear, Icon, Button } from 'svelte-materialify';
+	import { ProgressCircular, ProgressLinear, Icon, Button } from 'svelte-materialify/src';
 	import { mdiAlertBox, mdiAccountHardHat, mdiCog } from '@mdi/js';
 	import { createEventDispatcher } from 'svelte';
 	const dispatch = createEventDispatcher();
@@ -11,7 +11,7 @@
 	export let widget;
 
 	// Status options
-	const LOADING = 0, DONE = 1, ERROR = -1, MAINTENANCE = 2, SELECT_SQUARE = 3;
+	const LOADING = 0, DONE = 1, ERROR = -1, MAINTENANCE = 2;
 
 	// Loading options
 	const GENERIC_LOADING = 0, PROGRESSBAR_LOADING = 1;
@@ -26,26 +26,35 @@
 	let TEXT_DESCRIPTION = "";
 	let LOADING_TYPE = GENERIC_LOADING;
 	let LOADING_VALUE = 0;
+	let maintenancePriority = false;
 
 	function showResult() {
+		if(maintenancePriority)
+			return;
 		STATUS_WIDGET = DONE;
 		LOADING_VALUE = 0;
 		TEXT_DESCRIPTION = "";
 	}
 
 	function showError(text) {
+		if(maintenancePriority)
+			return;
 		STATUS_WIDGET = ERROR;
 		LOADING_VALUE = 0;
 		TEXT_DESCRIPTION = text;
 	}
 
-	function showMaintenance(text) {
+	function showMaintenance(text, priority=false) {
+		if(priority)
+			maintenancePriority = true;
 		STATUS_WIDGET = MAINTENANCE;
 		LOADING_VALUE = 0;
 		TEXT_DESCRIPTION = text;
 	}
 
 	function showLoading(text) {
+		if(maintenancePriority)
+			return;
 		STATUS_WIDGET = LOADING;
 		LOADING_TYPE = GENERIC_LOADING;
 		LOADING_VALUE = 0;
@@ -53,6 +62,8 @@
 	}
 
 	function showProgressBar(text, value=0) {
+		if(maintenancePriority)
+			return;
 		STATUS_WIDGET = LOADING;
 		LOADING_TYPE = PROGRESSBAR_LOADING;
 		TEXT_DESCRIPTION = text;
@@ -60,6 +71,8 @@
 	}
 
 	function updateProgressBar(text, value=0) {
+		if(maintenancePriority)
+			return;
 		if(STATUS_WIDGET === LOADING && LOADING_TYPE === PROGRESSBAR_LOADING){
 			TEXT_DESCRIPTION = text;
 			LOADING_VALUE = value;
@@ -83,10 +96,22 @@
 	}
 
 	function getState() {
+
+		// Check if need setup
+		let needSetup = false;
+		if(state && typeof(state) === "object")
+			Object.keys(state).forEach(key => {
+				if(state[key] === null)
+					needSetup = true;
+			});
+		if(needSetup)
+			showMaintenance("Il widget richiede un setup", true);
+
 		return state;
 	}
 
 	function reloadWidget() {
+		maintenancePriority = false;
 		reload = true;
 		setTimeout(() => reload = false, 0);
 	}
@@ -236,7 +261,7 @@
 
 						{#if state && showOptions}
 
-							<Button class=accent size="small" on:click={() => {
+							<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
 								if(showOptions){
 									dispatch("changeOptions", {
 										widget: widget,
@@ -276,7 +301,8 @@
 
 						{#if state && showOptions}
 
-							<Button class=accent size="small" on:click={() => {
+							<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
+								maintenancePriority = false;
 								if(showOptions){
 									dispatch("changeOptions", {
 										widget: widget,
@@ -284,7 +310,7 @@
 									});
 								}
 							}}>
-								Opzioni
+								{maintenancePriority ? "Configura" : "Opzioni"}
 							</Button>
 
 						{/if}
