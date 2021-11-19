@@ -9,6 +9,7 @@
 	export let apikey = null;
 	export let state = null;
 	export let showOptions = true;
+	export let showContextualOptions = true;
 	export let widget;
 	export let sessionID = null;
 	export let parent = null;
@@ -147,7 +148,7 @@
 	}
 
 	function openOptions() {
-		if(showOptions){
+		if(showContextualOptions){
 			dispatch("changeOptions", {
 				widget: widget,
 				state: state
@@ -175,7 +176,7 @@
 
 	<main bind:this={MAIN_REF}>
 
-		<!-- {#if showOptionsBtn}
+		{#if showOptionsBtn}
 		
 			<div class="btn-menu-options" on:click={() => dispatch("changeOptions", {
 					widget: widget,
@@ -190,7 +191,7 @@
 
 			</div>
 
-		{/if} -->
+		{/if}
 		
 		{#if !reload && isVisible}
 			
@@ -209,7 +210,7 @@
 				{showOptions_}
 				{openOptions}
 				on:changeOptions={() => {
-					if(showOptions){
+					if(showContextualOptions){
 						dispatch("changeOptions", {
 							widget: widget,
 							state: state
@@ -293,10 +294,10 @@
 								Riavvia
 							</Button>
 
-							{#if state && showOptions}
+							{#if state && showContextualOptions}
 
 								<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
-									if(showOptions){
+									if(showContextualOptions){
 										dispatch("changeOptions", {
 											widget: widget,
 											state: state
@@ -333,11 +334,11 @@
 								Riavvia
 							</Button>
 
-							{#if state && showOptions}
+							{#if state && showContextualOptions}
 
 								<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
 									maintenancePriority = false;
-									if(showOptions){
+									if(showContextualOptions){
 										dispatch("changeOptions", {
 											widget: widget,
 											state: state

@@ -198,4 +198,12 @@ export default class NetworkUtils {
       
     }
 
+    static async getServerUtenti(route, options){
+      return await (await fetch(`${this.server_utenti}/${route}`, options) ).json();
+    }
+
+    static async getServerLettura(route, options){
+      return await (await fetch(`${this.server_lettura}/${route}`, options) ).json();
+    }
+
 }

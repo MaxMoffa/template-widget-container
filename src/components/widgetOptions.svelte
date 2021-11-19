@@ -284,7 +284,7 @@
 
                                                                 {#if state[option.key] && state[option.key].key !== "" && search_showOptions}
             
-                                                                    {#await option.getOptions(state[option.key].key)}
+                                                                    {#await option.getOptions(state[option.key].key, getParams())}
                                                                         <ListItem>
                                                                             ...
                                                                         </ListItem>

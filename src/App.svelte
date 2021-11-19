@@ -179,6 +179,7 @@
                   widget={dataItem.widget}
                   apikey={APIKEY}
                   state={dataItem.state}
+                  showOptions={false}
                   on:changeOptions={(e) => {
                     isOptionsVisible = e.detail.widget;
                     optionsState = e.detail.state;
