@@ -49,6 +49,7 @@
         padding: 3px;
         display: flex;
         flex-direction: row;
+        background-color: #fff;
     }
 
     main > .option {

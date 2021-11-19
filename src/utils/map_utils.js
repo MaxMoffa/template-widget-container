@@ -60,6 +60,11 @@ export default class Map {
     // Get map geolevel
     getGeoLevel(){
         let zoom = this._map.getZoom();
+        return Map._getGeoLevel(zoom)
+    }
+
+    // Get geolevel
+    static _getGeoLevel(zoom) {
         if(zoom < 6)
             return 0;
         if(zoom < 9)
@@ -271,6 +276,20 @@ export default class Map {
     clearPopup() {
         if(this._popup !== null)
             this._popup.remove();
+    }
+
+    // Get bounding box
+    static getBoundingBox(f) {
+        let result = [];
+        let bounds = L.geoJson(f).getBounds();
+        result.push(bounds.getNorthEast());
+        result.push(bounds.getSouthWest());
+        return result;
+    }
+
+    // Get map types
+    static getMapTypes() {
+        return ["Standard", "OpenTopoMap", "OPNVKarte", "CyclOSM", "Stamen.Toner", "Stamen.TerrainBackground", "Esri.DeLorme", "Esri.WorldTopoMap", "Esri.WorldImagery", "Esri.WorldShadedRelief", "MtbMap", "NASAGIBS.ViirsEarthAtNight2012"];
     }
 
 }

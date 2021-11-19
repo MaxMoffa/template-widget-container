@@ -1,6 +1,6 @@
 <script>
     import { onMount } from 'svelte';
-    import { Checkbox, Col, Select, Chip, Subheader, AppBar } from 'svelte-materialify/src';
+    import { Checkbox, Col, Select, Chip, Subheader, AppBar, TextField, Menu, ListItem, List } from 'svelte-materialify/src';
     import Wapper from "./Wrapper.svelte";
     import PlaceSelector from './PlaceSelector.svelte';
     import { createEventDispatcher } from 'svelte';
@@ -18,6 +18,10 @@
     let old_state = {...state};
     let shadowHeader = "elevation-0";
     
+
+    // Variables
+    let search_showOptions = false;
+
     onMount(() => {
 
         if(state === null){
@@ -27,7 +31,6 @@
                     state[element.key] = null;
                 });
             });
-            console.log(state);
         }
 
     })
@@ -201,7 +204,7 @@
                                                         type="date" 
                                                         value={state[option.key] ? new Date(state[option.key]).toISOString().split("T")[0] : null}
                                                         on:change={(e) => {                                                               
-                                                            state[option.key] = e.target.valueAsNumber;
+                                                            state[option.key] = e.target.valueAsNumber ? e.target.valueAsNumber : null;
                                                             reloadWidget();
                                                         }} 
                                                     />
@@ -243,6 +246,83 @@
                                                         />
                                                     </div>
 
+                                                
+                                                {:else if option.type === "text"}
+                                                
+                                                    <div class="text-subtitle-1 grey-text text-darken-1">
+                                                        {option.name}
+                                                    </div>
+
+                                                    <TextField 
+                                                        filled 
+                                                        bind:value={state[option.key]}
+                                                        {...option.options}
+                                                    />
+
+                                                {:else if option.type === "search"}
+                                                
+                                                    <div class="text-subtitle-1 grey-text text-darken-1">
+                                                        {option.name}
+                                                    </div>
+
+                                                    <div style="width: 100%">
+                                                        <Menu style="width: 100%">
+                                                            <div slot="activator" style="width: 100%">
+                                                                <TextField 
+                                                                    filled 
+                                                                    bind:value={state[option.key].key}
+                                                                    {...option.options}
+                                                                    on:keypress={() => {
+                                                                        search_showOptions = false;
+                                                                        setTimeout(() => {
+                                                                            search_showOptions = true;
+                                                                        }, 100);
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <List>
+
+                                                                {#if state[option.key] && state[option.key].key !== "" && search_showOptions}
+            
+                                                                    {#await option.getOptions(state[option.key].key)}
+                                                                        <ListItem>
+                                                                            ...
+                                                                        </ListItem>
+                                                                    {:then result} 
+                                                                    
+                                                                        {#if result.length === 0}
+                                                                            <ListItem>
+                                                                                Nessun risultato
+                                                                            </ListItem>
+                                                                        {/if}
+                                                    
+                                                                        {#each result as o}
+                                                                        
+                                                                            <ListItem on:click={() => {
+                                                                                state[option.key] = o;
+                                                                                reloadWidget();
+                                                                            }}>
+                                                                                {o.key}
+                                                                            </ListItem>
+                                                    
+                                                                        {/each}
+                                                    
+                                                                        <slot />
+                                                                    
+                                                                    {:catch e}
+                                                    
+                                                                        <ListItem>
+                                                                            Ops! Sembra esserci un problema
+                                                                        </ListItem>
+                                                    
+                                                                    {/await}
+                                                    
+                                                                {/if}
+                                                                
+                                                            </List>
+                                                        </Menu>
+                                                    </div>
+
                                                 {/if}
 
                                             </div>
@@ -256,6 +336,39 @@
                             </div>
 
                         {/each}
+
+                        <div class="section-options">
+
+                            <Subheader>
+                                Opzioni aggiuntive
+                            </Subheader>
+
+                            <div class="options-container">
+
+                                {#if state.hasOwnProperty("_timer_refresh")}
+                                
+                                    <div class="option-list-element">
+
+                                        <div class="text-subtitle-1 grey-text text-darken-1">
+                                            Refresh automatico
+                                        </div>
+
+                                        <Select items={[
+                                            {name: "Disablitato", value: -1},
+                                            {name: "Ogni minuto", value: 60 * 1000 * 1},
+                                            {name: "Ogni 5 min", value: 60 * 1000 * 5},
+                                            {name: "Ogni 10 min", value: 60 * 1000 * 10},
+                                            {name: "Ogni 15 min", value: 60 * 1000 * 15},
+                                        ]} bind:value={state._timer_refresh} on:change={reloadWidget}>
+                                        </Select>
+
+                                    </div>
+
+                                {/if}
+
+                            </div>
+
+                        </div>
 
                     {/if}
     
@@ -368,6 +481,10 @@
     .option-list-element > .map-widget-options {
         background-color: #eeeeee;
         height: 300px !important;
+    }
+
+    :global(.s-menu__wrapper) {
+        width: 100%;
     }
 
 </style>

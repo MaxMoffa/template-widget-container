@@ -2,6 +2,7 @@
 	import { ProgressCircular, ProgressLinear, Icon, Button } from 'svelte-materialify/src';
 	import { mdiAlertBox, mdiAccountHardHat, mdiCog } from '@mdi/js';
 	import { createEventDispatcher } from 'svelte';
+	import IntersectionObserver from "svelte-intersection-observer";
 	const dispatch = createEventDispatcher();
 
 	export let token = null;
@@ -9,6 +10,8 @@
 	export let state = null;
 	export let showOptions = true;
 	export let widget;
+	export let sessionID = null;
+	export let parent = null;
 
 	// Status options
 	const LOADING = 0, DONE = 1, ERROR = -1, MAINTENANCE = 2;
@@ -18,8 +21,12 @@
 
 	// Reload
 	let reload = false;
+	let _interval = null;
+	let isVisible = false;
 
 	let showOptionsBtn = false;
+
+	let MAIN_REF;
 
 	// Status widget
 	let STATUS_WIDGET = LOADING;
@@ -27,6 +34,7 @@
 	let LOADING_TYPE = GENERIC_LOADING;
 	let LOADING_VALUE = 0;
 	let maintenancePriority = false;
+
 
 	function showResult() {
 		if(maintenancePriority)
@@ -103,14 +111,24 @@
 			Object.keys(state).forEach(key => {
 				if(state[key] === null)
 					needSetup = true;
+				if(state[key] && typeof(state[key]) === "object")
+					if(state[key].hasOwnProperty("value") && state[key].value === null)
+						needSetup = true; 
 			});
-		if(needSetup)
+		if(needSetup){
 			showMaintenance("Il widget richiede un setup", true);
+			return state;
+		}
+
+		// Load timer refresh
+		if(state && _interval === null && state.hasOwnProperty("_timer_refresh") && typeof(state._timer_refresh) === "number" && state._timer_refresh > 0)
+			reloadEvery(state._timer_refresh).then(() => console.log("INTERVAL REMOVED"));
 
 		return state;
 	}
 
 	function reloadWidget() {
+		isVisible = true;
 		maintenancePriority = false;
 		reload = true;
 		setTimeout(() => reload = false, 0);
@@ -137,91 +155,133 @@
 		}
 	}
 
+	function reloadEvery(millis) {
+		return new Promise((resolve, reject) => {
+			_interval = setInterval(() => {
+			if(sessionID !== null && sessionID !== window._gridSessionID){
+				console.log("Remove interval...");
+				clearInterval(_interval);
+				_interval = null;
+				resolve();
+			}
+			reloadWidget();
+		}, millis);
+		});
+	}
+
 </script>
 
-<main>
+<IntersectionObserver once element={MAIN_REF} root={parent} bind:intersecting={isVisible}>
 
-	{#if showOptionsBtn}
-	
-		<div class="btn-menu-options" on:click={() => dispatch("changeOptions", {
-				widget: widget,
-				state: state
-			})
-		}>
+	<main bind:this={MAIN_REF}>
 
-			<Icon 
-				size="16"
-				path={mdiCog} 
+		<!-- {#if showOptionsBtn}
+		
+			<div class="btn-menu-options" on:click={() => dispatch("changeOptions", {
+					widget: widget,
+					state: state
+				})
+			}>
+
+				<Icon 
+					size="16"
+					path={mdiCog} 
+				/>
+
+			</div>
+
+		{/if} -->
+		
+		{#if !reload && isVisible}
+			
+			<svelte:component
+				this={widget} 
+				WIDGET_VISIBLE={STATUS_WIDGET === DONE}
+				{showResult}
+				{showError}
+				{showMaintenance}
+				{showLoading}
+				{showProgressBar}
+				{updateProgressBar}
+				{getFormData}
+				state={getState()}
+				{saveState}
+				{showOptions_}
+				{openOptions}
+				on:changeOptions={() => {
+					if(showOptions){
+						dispatch("changeOptions", {
+							widget: widget,
+							state: state
+						});
+					}
+				}}
 			/>
 
-		</div>
+			{#if STATUS_WIDGET === LOADING}
+			
+				{#if LOADING_TYPE === GENERIC_LOADING}
 
-	{/if}
-	
-	{#if !reload}
-		
-		<svelte:component
-			this={widget} 
-			WIDGET_VISIBLE={STATUS_WIDGET === DONE}
-			{showResult}
-			{showError}
-			{showMaintenance}
-			{showLoading}
-			{showProgressBar}
-			{updateProgressBar}
-			{getFormData}
-			state={getState()}
-			{saveState}
-			{showOptions_}
-			{openOptions}
-			on:changeOptions={() => {
-				if(showOptions){
-					dispatch("changeOptions", {
-						widget: widget,
-						state: state
-					});
-				}
-			}}
-		/>
+					<div class="GENERIC_CONTAINER">
 
-		{#if STATUS_WIDGET === LOADING}
-		
-			{#if LOADING_TYPE === GENERIC_LOADING}
+						<div>
+							
+							<div class="loading-element">
+								<ProgressCircular 
+									size={70} 
+									indeterminate 
+									color="success" 
+								/>
+							</div>
 
-				<div class="GENERIC_CONTAINER">
+							<span>
+								{TEXT_DESCRIPTION}
+							</span>
 
-					<div>
-						
-						<div class="loading-element">
-							<ProgressCircular 
-								size={70} 
-								indeterminate 
-								color="success" 
-							/>
-						</div>
+							<div class="btn-reload">
+								<Button size="small" on:click={reloadWidget}>
+									Riavvia
+								</Button>
+							</div>
 
-						<span>
-							{TEXT_DESCRIPTION}
-						</span>
-
-						<div class="btn-reload">
-							<Button size="small" on:click={reloadWidget}>
-								Riavvia
-							</Button>
 						</div>
 
 					</div>
 
-				</div>
+				{:else}
 
-			{:else}
+					<div class="GENERIC_CONTAINER">
 
+						<div>
+							<ProgressLinear 
+								height="16px" 
+								value={LOADING_VALUE} 
+							/>
+
+							<span>
+								{TEXT_DESCRIPTION}
+							</span>
+
+							<div class="btn-reload">
+								<Button size="small" on:click={reloadWidget}>
+									Riavvia
+								</Button>
+							</div>
+
+						</div>
+
+					</div>
+
+				{/if}
+
+			{:else if STATUS_WIDGET === ERROR}
+			
 				<div class="GENERIC_CONTAINER">
 
 					<div>
-						<ProgressLinear 
-							height="16px" 
-							value={LOADING_VALUE} 
+						<Icon 
+							size="64"
+							path={mdiAlertBox} 
 						/>
 
 						<span>
@@ -232,6 +292,63 @@
 							<Button size="small" on:click={reloadWidget}>
 								Riavvia
 							</Button>
+
+							{#if state && showOptions}
+
+								<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
+									if(showOptions){
+										dispatch("changeOptions", {
+											widget: widget,
+											state: state
+										});
+									}
+								}}>
+									Opzioni
+								</Button>
+
+							{/if}
+
+						</div>
+
+					</div>
+
+				</div>
+			
+			{:else if STATUS_WIDGET === MAINTENANCE}
+
+				<div class="GENERIC_CONTAINER">
+
+					<div>
+						<Icon 
+							size="64"
+							path={mdiAccountHardHat} 
+						/>
+
+						<span>
+							{TEXT_DESCRIPTION}
+						</span>
+
+						<div class="btn-reload">
+							<Button size="small" on:click={reloadWidget}>
+								Riavvia
+							</Button>
+
+							{#if state && showOptions}
+
+								<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
+									maintenancePriority = false;
+									if(showOptions){
+										dispatch("changeOptions", {
+											widget: widget,
+											state: state
+										});
+									}
+								}}>
+									{maintenancePriority ? "Configura" : "Opzioni"}
+								</Button>
+
+							{/if}
+
 						</div>
 
 					</div>
@@ -240,81 +357,30 @@
 
 			{/if}
 
-		{:else if STATUS_WIDGET === ERROR}
-		
+		{/if}
+
+		{#if !isVisible}
+
 			<div class="GENERIC_CONTAINER">
 
 				<div>
-					<Icon 
-						size="64"
-						path={mdiAlertBox} 
-					/>
-
-					<span>
-						{TEXT_DESCRIPTION}
-					</span>
-
-					<div class="btn-reload">
-						<Button size="small" on:click={reloadWidget}>
-							Riavvia
-						</Button>
-
-						{#if state && showOptions}
-
-							<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
-								if(showOptions){
-									dispatch("changeOptions", {
-										widget: widget,
-										state: state
-									});
-								}
-							}}>
-								Opzioni
-							</Button>
-
-						{/if}
-
+					
+					<div class="loading-element">
+						<ProgressCircular 
+							size={70} 
+							indeterminate 
+							color="success" 
+						/>
 					</div>
 
-				</div>
-
-			</div>
-		
-		{:else if STATUS_WIDGET === MAINTENANCE}
-
-			<div class="GENERIC_CONTAINER">
-
-				<div>
-					<Icon 
-						size="64"
-						path={mdiAccountHardHat} 
-					/>
-
 					<span>
-						{TEXT_DESCRIPTION}
+						Il widget non è visibile					
 					</span>
 
 					<div class="btn-reload">
 						<Button size="small" on:click={reloadWidget}>
-							Riavvia
+							Avvia
 						</Button>
-
-						{#if state && showOptions}
-
-							<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
-								maintenancePriority = false;
-								if(showOptions){
-									dispatch("changeOptions", {
-										widget: widget,
-										state: state
-									});
-								}
-							}}>
-								{maintenancePriority ? "Configura" : "Opzioni"}
-							</Button>
-
-						{/if}
-
 					</div>
 
 				</div>
@@ -322,10 +388,10 @@
 			</div>
 
 		{/if}
+			
+	</main>
 
-	{/if}
-		
-</main>
+</IntersectionObserver>
 
 <style>
 

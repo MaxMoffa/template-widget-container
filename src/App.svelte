@@ -10,7 +10,8 @@
   import gridHelp from "svelte-grid/build/helper/index.mjs";
   import { MaterialApp, Button, Icon } from "svelte-materialify/src";
   import { onMount } from 'svelte';
-  import { mdiContentSave, mdiDelete, mdiPencil } from "@mdi/js";
+  import { mdiContentSave, mdiDelete, mdiPencil, mdiCog } from "@mdi/js";
+  import Card from './components/WidgetCard.svelte';
 
   // Get APIKEY
   const url = new URL(window.location.href);
@@ -119,6 +120,11 @@
     }));
   }
 
+    // Check if widget is cutomizable
+    function isCustomizable(state) {
+      return state && typeof(state) === "object";
+    }
+
 </script>
 
 <MaterialApp>
@@ -137,11 +143,34 @@
 
           <Grid bind:items={items} rowHeight={70} let:item let:dataItem {cols}>
 
-            <div class=demo-widget style={`background: ${dataItem.background} !important`}>
+            <Card background={dataItem.background}>
+
               {#if isResizable}
 
-                <div style="width: 100%; height: 100%; display: grid; place-items: center">
-                  {WIDGET_NAME}
+                <!-- Modify mode content -->
+                <div class="modify">
+
+                  <div>
+
+                      <span style="text-align: center;" class="mb-6">
+                          {WIDGET_NAME}
+                      </span>
+
+                      {#if isCustomizable(dataItem.state)}
+
+                          <Button outlined class="yellow-text darken-3 text-darken-3 mb-1" on:click={() => {
+                            isOptionsVisible = dataItem.widget;
+                            optionsState = dataItem.state;
+                            optionsDataItem = dataItem;
+                          }}>
+                              <Icon path={mdiCog} class="mr-3" />
+                              Modifica
+                          </Button>
+                          
+                      {/if}
+
+                  </div>
+
                 </div>
               
               {:else}
@@ -162,7 +191,8 @@
                 />  
 
               {/if}
-            </div>
+            
+            </Card>
           
           </Grid>
 
@@ -209,19 +239,19 @@
   </div>
   
 
-  <Button on:click={reset} fab style="position: absolute; bottom: 12px; right: 12px">
+  <Button on:click={reset} fab style="position: fixed; bottom: 12px; right: 12px">
     <Icon path={mdiDelete} />
   </Button>
 
   {#if isResizable}
 
-    <Button on:click={changeMode} fab class="blue" style="position: absolute; top: 12px; right: 12px">
+    <Button on:click={changeMode} fab class="blue" style="position: fixed; top: 12px; right: 12px">
       <Icon path={mdiContentSave} />
     </Button>
 
   {:else}
   
-    <Button on:click={changeMode} fab class="green" style="position: absolute; top: 12px; right: 12px">
+    <Button on:click={changeMode} fab class="green" style="position: fixed; top: 12px; right: 12px">
       <Icon path={mdiPencil} />
     </Button>
 
@@ -239,13 +269,24 @@
     background-color: rgba(0,0,0,0) !important;
   }
 
-  .demo-widget {
-    height: 100%;
+  /* Modify mode content */
+
+  .modify {
     width: 100%;
-    border-radius: 16px !important;
-    background-color: #fff;
-    padding: 8px;
-    overflow: auto;
+    height: 100%;
+    display: grid;
+    place-items: center;
+  }
+
+  .modify > * {
+      flex: 1;
+      display: grid;
+      justify-content: center;
+      align-items: center;
+  }
+
+  :global(.s-item-group) {
+      min-width: 0;
   }
 
   .demo-container {

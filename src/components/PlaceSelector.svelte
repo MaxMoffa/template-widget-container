@@ -23,7 +23,8 @@
             },
             zoom: map.getZoom(),
             center: map.getCenter(),
-            geolevel: map.getGeoLevel()
+            geolevel: map.getGeoLevel(),
+            bounds: Map.getBoundingBox(feature)
         };
 
         switch (map.getGeoLevel()) {
