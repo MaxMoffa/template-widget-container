@@ -17,10 +17,11 @@
     let reloadWidgetOptions = true;
     let old_state = {...state};
     let shadowHeader = "elevation-0";
-    
+    let lastScrollTop = 0;
+    let optionContainer;
 
     // Variables
-    let search_showOptions = false;
+    let search_showOptions = true;
 
     onMount(() => {
 
@@ -52,6 +53,11 @@
             reloadWidgetOptions = false;
             setTimeout(() => {
                 reloadWidgetOptions = true;
+                setTimeout(() => {
+                    console.log(lastScrollTop);
+                    optionContainer.scrollTop = lastScrollTop;
+                    console.log(optionContainer);
+                }, 0);
             }, 0);
         }, 0);
     }
@@ -86,6 +92,7 @@
     
     function updateShadow(e) {
         let scrollTop = e.target.scrollTop;
+        lastScrollTop = scrollTop !== 0 ? scrollTop : lastScrollTop;
         if(scrollTop === 0)
             shadowHeader = "elevation-0"
         else
@@ -101,7 +108,7 @@
     
 }}>
 
-    <div class="container" style={widget === null ? "width: 100%; height: 100%; border-radius: 0" : ""}>
+    <div class="container" style={widget === null ? "width: 100% !important; height: 100% !important; border-radius: 0" : ""}>
 
         {#if widget !== null}
 
@@ -153,11 +160,11 @@
                 </Chip>
             </AppBar>
 
-            <div class="options" on:scroll={updateShadow}>
+            <div class="options" bind:this={optionContainer} on:scroll={updateShadow}>
 
                 <Col>
 
-                    {#if true}
+                    {#if reloadWidgetOptions}
                         
                         {#each configuration as section}
 
@@ -272,17 +279,23 @@
                                                                     filled 
                                                                     bind:value={state[option.key].key}
                                                                     {...option.options}
-                                                                    on:keypress={() => {
+                                                                    on:keydown={() => {
                                                                         search_showOptions = false;
                                                                         setTimeout(() => {
                                                                             search_showOptions = true;
-                                                                        }, 100);
+                                                                        }, 0);
+                                                                    }}
+                                                                    on:focus={() => {
+                                                                        search_showOptions = false;
+                                                                        setTimeout(() => {
+                                                                            search_showOptions = true;
+                                                                        }, 0);
                                                                     }}
                                                                 />
                                                             </div>
                                                             <List>
 
-                                                                {#if state[option.key] && state[option.key].key !== "" && search_showOptions}
+                                                                {#if state[option.key] && search_showOptions}
             
                                                                     {#await option.getOptions(state[option.key].key, getParams())}
                                                                         <ListItem>

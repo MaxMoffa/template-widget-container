@@ -26,20 +26,28 @@
     let oldModifyMode = modifyMode;
     let oldItemsId = itemsId;
     let oldItemsLength = items.length;
+    let updateWidget = false;
 
     $: {
         if(itemsId !== null && itemsId !== oldItemsId){
             oldItemsId = itemsId;
             initGrid();
-        }else if(modifyMode !== oldModifyMode){
-            oldModifyMode = modifyMode;
-            updateGridState();
         }else if(oldItemsLength < items.length){
             oldItemsLength = items.length;
             prepareWidget(items[0])
             .then(result => {
                 _items = [...[result], ..._items];
+                if(modifyMode)
+                    updateGrid();
             });
+        }else if(modifyMode !== oldModifyMode){
+            oldModifyMode = modifyMode;
+            updateGridState();
+        }else {
+            updateWidget = true;
+            setTimeout(() => {
+                updateWidget = false;
+            }, 0);
         }
     }
 
@@ -157,6 +165,8 @@
     // Remove widget from grid
     function removeWidget(item) {
         _items = _items.filter((value) => value.id !== item.id);
+        items = items.filter((value) => value.id !== item.id);
+        oldItemsLength--;
         updateGrid();
     }
 
@@ -187,9 +197,35 @@
             propreties: widgetInfo.propreties
         };
 
-        if(item.hasOwnProperty("state") && items.state && !item.state.hasOwnProperty("_timer_refresh"))
+        if(item.hasOwnProperty("state") && item.state && typeof(item.state) === "object" && !item.state.hasOwnProperty("_timer_refresh"))
             item.state._timer_refresh = -1;
+
+        if(item.hasOwnProperty("state") && item.state && Object.keys(item.state).length-1 < Object.keys(widgetInfo.propreties.DEFAULT_CONFIGURATION).length){
+            Object.keys(widgetInfo.propreties.DEFAULT_CONFIGURATION).forEach(k => {
+                if(!item.state.hasOwnProperty(k))
+                    item.state[k] = widgetInfo.propreties.DEFAULT_CONFIGURATION[k];
+            });
+        }
+
         return item;
+    }
+
+    function getStatusText(state) {
+        if(!state || typeof(state) !== "object")
+            return "";
+        if(!state.hasOwnProperty("_defaultStateKey"))
+            return "";
+        let p = state;
+        state._defaultStateKey.every(v => {
+            if(p && p.hasOwnProperty(v))
+                p = p[v];
+            else
+                return false;
+            return true;
+        });
+        if(typeof(p) === "string")
+            return p;
+        return "";
     }
 
 </script>
@@ -212,9 +248,15 @@
             <!-- No items -->
             <div class="no-data-grid">
                 <div>
-                    <span>
-                        Non ci sono widget
-                    </span>
+                    <div>
+                        <img src="./media/grape_pack/drawkit-grape-pack-illustration-7.svg" height="300" alt="Empty">
+                    </div>
+                    <div>
+                        Ops! La griglia è vuota
+                    </div>
+                    <div>
+                        <slot name="empty"/>
+                    </div>
                 </div>
             </div>
 
@@ -238,34 +280,40 @@
                     <Card background={dataItem.propreties.BACKGROUND}>
 
                         <!-- Check grid mode -->
-                        {#if modifyMode}
+                        {#if updateWidget}
+                            <!-- EMPTY -->
+                        {:else if modifyMode}
 
-                                <!-- Modify mode content -->
-                                <div class="modify">
+                            <!-- Modify mode content -->
+                            <div class="modify">
 
-                                    <div>
+                                <div>
 
-                                        <span style="text-align: center;" class="mb-6">
-                                            {dataItem.propreties.WIDGET_NAME}
-                                        </span>
+                                    <span style="text-align: center;" class="mb-3">
+                                        {dataItem.propreties.WIDGET_NAME}
+                                    </span>
 
-                                        {#if isCustomizable(dataItem.state)}
+                                    <span style="text-align: center;" class="mb-6 text-caption">
+                                        {getStatusText(dataItem.state)}
+                                    </span>
 
-                                            <Button outlined class="yellow yellow-text darken-3 text-darken-3 mb-1" on:click={() => optionsDataItem = dataItem}>
-                                                <Icon path={mdiCog} class="mr-3" />
-                                                Modifica
-                                            </Button>
-                                            
-                                        {/if}
+                                    {#if isCustomizable(dataItem.state)}
 
-                                        <Button outlined class="red red-text" on:click={() => removeWidget(dataItem)}>
-                                            <Icon path={mdiDelete} class="mr-3" />
-                                            Rimuovi
+                                        <Button outlined class="yellow yellow-text darken-3 text-darken-3 mb-1" on:click={() => optionsDataItem = dataItem}>
+                                            <Icon path={mdiCog} class="mr-3" />
+                                            Modifica
                                         </Button>
-                                    </div>
+                                        
+                                    {/if}
 
+                                    <Button outlined class="red red-text" on:click={() => removeWidget(dataItem)}>
+                                        <Icon path={mdiDelete} class="mr-3" />
+                                        Rimuovi
+                                    </Button>
                                 </div>
-                        
+
+                            </div>
+                            
                         {:else}
 
                             <!-- Widget wrapper -->
@@ -310,6 +358,10 @@
                 optionsDataItem.state = e.detail;
                 updateGrid();
                 optionsDataItem = null;
+                updateWidget = true;
+                setTimeout(() => {
+                    updateWidget = false;
+                }, 0);
             }}
             on:close={() => {
                 optionsDataItem = null;
@@ -332,15 +384,21 @@
 
     .no-data-grid {
         width: 100%;
-        height: 100%;
+        height: auto;
         display: grid;
         place-items: center;
+        padding: 64px 0;
     }
 
     .no-data-grid > div {
-        width: 100px;
-        height: 100px;
-        background-color: blue;
+        width: 300px;
+        height: auto;   
+    }
+
+    .no-data-grid > div > div{
+        width: 100%;
+        text-align: center;
+        padding: 8px 0;
     }
 
     /* Modify mode content */
