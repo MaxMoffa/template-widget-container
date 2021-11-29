@@ -88,19 +88,23 @@
                                     
                 {#each WidgetIndex.widgetsList as widget}
 
-                    <div class="widget-container">
+                    {#if !widget.isAdmin}
+                    
+                        <div class="widget-container">
 
-                        <WidgetElement 
-                            title={widget.name}
-                            background={"#abcdef"}
-                            maxDimension
-                            on:click={() => {
-                                dispatch("addWidget", widget.id);
-                                closeMenu();
-                            }}
-                        />
-                        
-                    </div>
+                            <WidgetElement 
+                                title={widget.name}
+                                background={"#abcdef"}
+                                maxDimension
+                                on:click={() => {
+                                    dispatch("addWidget", widget.id);
+                                    closeMenu();
+                                }}
+                            />
+                            
+                        </div>
+
+                    {/if}
                     
                 {/each}
 

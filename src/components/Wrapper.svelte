@@ -1,6 +1,6 @@
 <script>
 	import { ProgressCircular, ProgressLinear, Icon, Button } from 'svelte-materialify/src';
-	import { mdiAlertBox, mdiAccountHardHat, mdiCog } from '@mdi/js';
+	import { mdiAlertBox, mdiAccountHardHat, mdiCog, mdiCheckBold } from '@mdi/js';
 	import { createEventDispatcher } from 'svelte';
 	import IntersectionObserver from "svelte-intersection-observer";
 	const dispatch = createEventDispatcher();
@@ -15,7 +15,7 @@
 	export let parent = null;
 
 	// Status options
-	const LOADING = 0, DONE = 1, ERROR = -1, MAINTENANCE = 2;
+	const LOADING = 0, DONE = 1, ERROR = -1, MAINTENANCE = 2, CONFIRM = 3;
 
 	// Loading options
 	const GENERIC_LOADING = 0, PROGRESSBAR_LOADING = 1;
@@ -49,6 +49,14 @@
 		if(maintenancePriority)
 			return;
 		STATUS_WIDGET = ERROR;
+		LOADING_VALUE = 0;
+		TEXT_DESCRIPTION = text;
+	}
+
+	function showConfirm(text) {
+		if(maintenancePriority)
+			return;
+		STATUS_WIDGET = CONFIRM;
 		LOADING_VALUE = 0;
 		TEXT_DESCRIPTION = text;
 	}
@@ -199,6 +207,7 @@
 				this={widget} 
 				WIDGET_VISIBLE={STATUS_WIDGET === DONE}
 				{showResult}
+				{showConfirm}
 				{showError}
 				{showMaintenance}
 				{showLoading}
@@ -308,6 +317,32 @@
 								</Button>
 
 							{/if}
+
+						</div>
+
+					</div>
+
+				</div>
+
+			{:else if STATUS_WIDGET === CONFIRM}
+			
+				<div class="GENERIC_CONTAINER">
+
+					<div>
+						<Icon 
+							size="64"
+							path={mdiCheckBold} 
+						/>
+
+						<span>
+							{TEXT_DESCRIPTION}
+						</span>
+
+						<div class="btn-reload">
+							
+							<Button size="small" on:click={reloadWidget}>
+								Riavvia
+							</Button>
 
 						</div>
 
