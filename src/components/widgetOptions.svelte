@@ -15,6 +15,7 @@
     export let background = "#ffffff";
 
     let reloadWidgetOptions = true;
+    let reloadWidget = true;
     let old_state = {...state};
     let shadowHeader = "elevation-0";
     let lastScrollTop = 0;
@@ -34,9 +35,12 @@
             });
         }
 
+        if(state && typeof(state) === "object" && !state.hasOwnProperty("_timer_refresh"))
+            state._timer_refresh = -1;
+
     })
 
-    function reloadWidget() {
+    function reload(reloadOptions = true) {
         
         // Verify changes
         let isChanged = false;
@@ -49,6 +53,16 @@
             old_state = {...state};
         
         // Reload widget
+        setTimeout(() => {
+            reloadWidget = false;
+            setTimeout(() => {
+                reloadWidget = true;
+            }, 0);
+        }, 0);
+
+        // Reload widget options
+        if(!reloadOptions)
+            return;
         setTimeout(() => {
             reloadWidgetOptions = false;
             setTimeout(() => {
@@ -126,7 +140,7 @@
 
                     <div class="widget-container" style={`background: ${background}`}>
 
-                        {#if reloadWidgetOptions}
+                        {#if reloadWidget}
                         
                             <Wapper 
                                 {widget}
@@ -188,14 +202,14 @@
                                                         {option.name}
                                                     </div>
 
-                                                    <Select disabled={isDisabled(option)} items={option.options} bind:value={state[option.key]} on:change={reloadWidget}>
+                                                    <Select disabled={isDisabled(option)} items={option.options} bind:value={state[option.key]} on:change={reload}>
                                                     </Select>
 
                                                 {:else if option.type === "checkbox"}
 
                                                     <Checkbox disabled={isDisabled(option)} color="accent" checked={state[option.key]} on:change={(e) => {
                                                         state[option.key] = e.target.checked;
-                                                        reloadWidget();
+                                                        reload();
                                                     }}>
                                                         {option.name}
                                                     </Checkbox>
@@ -212,7 +226,7 @@
                                                         value={state[option.key] ? new Date(state[option.key]).toISOString().split("T")[0] : null}
                                                         on:change={(e) => {                                                               
                                                             state[option.key] = e.target.valueAsNumber ? e.target.valueAsNumber : null;
-                                                            reloadWidget();
+                                                            reload();
                                                         }} 
                                                     />
 
@@ -226,7 +240,7 @@
                                                         ...
                                                     {:then options} 
 
-                                                        <Select disabled={isDisabled(option)} items={options} bind:value={state[option.key]} on:change={reloadWidget}>
+                                                        <Select disabled={isDisabled(option)} items={options} bind:value={state[option.key]} on:change={reload}>
                                                         </Select>
 
                                                     {/await}
@@ -237,7 +251,7 @@
                                                         {option.name}
                                                     </div>
 
-                                                    <Select disabled={isDisabled(option)} multiple items={option.options} bind:value={state[option.key]} on:change={reloadWidget}>
+                                                    <Select disabled={isDisabled(option)} multiple items={option.options} bind:value={state[option.key]} on:change={reload}>
                                                     </Select>
 
                                                 {:else if option.type === "place"}
@@ -250,6 +264,7 @@
                                                         <PlaceSelector
                                                             bind:placeSelected={state[option.key]}
                                                             params={getParams()} 
+                                                            on:change={() => reload(false)}
                                                         />
                                                     </div>
 
@@ -313,7 +328,7 @@
                                                                         
                                                                             <ListItem on:click={() => {
                                                                                 state[option.key] = o;
-                                                                                reloadWidget();
+                                                                                reload();
                                                                             }}>
                                                                                 {o.key}
                                                                             </ListItem>
@@ -372,7 +387,7 @@
                                             {name: "Ogni 5 min", value: 60 * 1000 * 5},
                                             {name: "Ogni 10 min", value: 60 * 1000 * 10},
                                             {name: "Ogni 15 min", value: 60 * 1000 * 15},
-                                        ]} bind:value={state._timer_refresh} on:change={reloadWidget}>
+                                        ]} bind:value={state._timer_refresh} on:change={reload}>
                                         </Select>
 
                                     </div>

@@ -3,6 +3,7 @@
 	import { mdiAlertBox, mdiAccountHardHat, mdiCog, mdiCheckBold } from '@mdi/js';
 	import { createEventDispatcher } from 'svelte';
 	import IntersectionObserver from "svelte-intersection-observer";
+	import { Boundary } from '@crownframework/svelte-error-boundary';
 	const dispatch = createEventDispatcher();
 
 	export let token = null;
@@ -203,30 +204,32 @@
 		
 		{#if !reload && isVisible}
 			
-			<svelte:component
-				this={widget} 
-				WIDGET_VISIBLE={STATUS_WIDGET === DONE}
-				{showResult}
-				{showConfirm}
-				{showError}
-				{showMaintenance}
-				{showLoading}
-				{showProgressBar}
-				{updateProgressBar}
-				{getFormData}
-				state={getState()}
-				{saveState}
-				{showOptions_}
-				{openOptions}
-				on:changeOptions={() => {
-					if(showContextualOptions){
-						dispatch("changeOptions", {
-							widget: widget,
-							state: state
-						});
-					}
-				}}
-			/>
+			<Boundary onError={e => showError(e)}>
+				<svelte:component
+					this={widget} 
+					WIDGET_VISIBLE={STATUS_WIDGET === DONE}
+					{showResult}
+					{showConfirm}
+					{showError}
+					{showMaintenance}
+					{showLoading}
+					{showProgressBar}
+					{updateProgressBar}
+					{getFormData}
+					state={getState()}
+					{saveState}
+					{showOptions_}
+					{openOptions}
+					on:changeOptions={() => {
+						if(showContextualOptions){
+							dispatch("changeOptions", {
+								widget: widget,
+								state: state
+							});
+						}
+					}}
+				/>
+			</Boundary>
 
 			{#if STATUS_WIDGET === LOADING}
 			

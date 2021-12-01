@@ -3,6 +3,8 @@
     import Map from "../utils/map_utils";
     import { Chip, Icon } from 'svelte-materialify/src';
     import { mdiClose } from '@mdi/js';
+    import { createEventDispatcher } from 'svelte';
+    const dispatch = createEventDispatcher();
 
     export let params = new FormData();
     export let placeSelected = null;
@@ -46,6 +48,9 @@
         }
 
         map.updateGeojsonConfiguration(config);
+        setTimeout(() => {
+            dispatch("change");
+        }, 0);
     };
 
     const getColors = (info, feature, data, style) => {
@@ -79,6 +84,9 @@
     function removeSelection() {
         placeSelected = null;
         map.updateGeojsonConfiguration(config);
+        setTimeout(() => {
+            dispatch("change");
+        }, 0);
     }
 
 </script>

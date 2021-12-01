@@ -76,6 +76,19 @@ export default class Map {
         return 4;
     }
 
+    // Get zoom from geolevel
+    static _getZoomFromGeolevel(geolevel) {
+        if(geolevel === 0)
+            return 5;
+        if(geolevel === 1)
+            return 8;
+        if(geolevel === 2)
+            return 10;
+        if(geolevel === 3)
+            return 13;
+        return 14;
+    }
+
     // Get zoom base from geolevel
     getZoomFromGeoLevel(){
         let geolevel = this.getGeoLevel();
@@ -91,8 +104,15 @@ export default class Map {
     }
 
     // Load geojson on the map
-    async loadGeojson(config={}) {
-        let geodecode = await this.getGeodecodedPosition();
+    async loadGeojson(config={}, path=null) {
+        let geodecode;
+        if(path !== null){
+            geodecode = path.path;
+            this.setCenter(path.center);
+            this.setZoom(path.zoom);
+        }else{
+            geodecode = await this.getGeodecodedPosition();
+        }
         this._lastPlace = geodecode;
         this._lastGeoLevel = this.getGeoLevel();
         if(config.hasOwnProperty("updatePlace"))
