@@ -7,8 +7,8 @@
     export let active = true;
     export let placeholder = "Cerca";
     export let getOptions = async () => [];
+    export let showOptions = false;
 
-    let showOptions = false;
     let value = "";
 
     function updateOptions() {
@@ -37,7 +37,7 @@
 
         <List class="elevation-0" style="width: 100%; height: 300px; overflow-y: auto">
             
-            {#if value !== "" && showOptions}
+            {#if showOptions}
             
                 {#await getOptions(value)}
                     <ListItem>

@@ -138,10 +138,13 @@
 	}
 
 	function reloadWidget() {
-		isVisible = true;
+		isVisible = false;
 		maintenancePriority = false;
 		reload = true;
-		setTimeout(() => reload = false, 0);
+		setTimeout(() => {
+			reload = false;
+			isVisible = true;
+		}, 1000);
 	}
 
 	function showOptions_() {

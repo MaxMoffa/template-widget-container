@@ -1,5 +1,5 @@
 <script>
-
+    import { Ripple } from 'svelte-materialify/src'
     import { createEventDispatcher } from 'svelte';
     const dispatch = createEventDispatcher();
 
@@ -24,13 +24,13 @@
 
 </script>
 
-<main style={background !== null ? `border: 1px solid ${background} !important; ${style}` : `${style}`} >
+<main style={background !== null ? `border: 1px solid ${background} !important; ${style}` : `${style}`} use:Ripple>
 
     {#each options as option}
     
         <div 
             style={selected === option.value ? `background: ${background} !important` : ""} 
-            class={`option ${selected === option.value ? "selected" : ""}`} on:click={() => click(option.value)}
+            class={`option ${selected === option.value ? "selected" : `${background}-text`}`} on:click={() => click(option.value)}
         >
             {option.name}
         </div>
@@ -46,7 +46,7 @@
         height: auto;
         border-radius: 32px;
         border: 1px solid #000;
-        padding: 3px;
+        padding: 0;
         display: flex;
         flex-direction: row;
         background-color: #fff;
@@ -57,7 +57,8 @@
         padding: 5px 32px;
         border-radius: 32px;
         cursor: pointer;
-        text-align: center;
+        display: grid;
+        place-items: center;
     }
 
     main > .selected {
