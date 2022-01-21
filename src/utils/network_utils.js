@@ -6,8 +6,8 @@
 
 export default class NetworkUtils {
 
-    static server = "sqd.sensesquare.eu";
-    //static server = "192.168.1.121";
+    static server = "square.sensesquare.eu";
+    static nominatim = "http://193.205.184.32";
     static server_lettura = `https://${this.server}:5001/`;
     static server_utenti = `https://${this.server}:5002/`;
 
@@ -198,12 +198,27 @@ export default class NetworkUtils {
       
     }
 
-    static async getServerUtenti(route, options){
+    static async getServerUtenti(route, options, getResponse=false){
+      if(getResponse)
+        return await fetch(`${this.server_utenti}/${route}`, options);
       return await (await fetch(`${this.server_utenti}/${route}`, options) ).json();
     }
 
-    static async getServerLettura(route, options){
+    static async getServerLettura(route, options, getResponse=false){
+      if(getResponse)
+        return await fetch(`${this.server_lettura}/${route}`, options);
       return await (await fetch(`${this.server_lettura}/${route}`, options) ).json();
+    }
+
+    static async getNominatim(route, params={}, options={}, getResponse=false){
+      let p = "";
+      Object.entries(params).forEach(([key, val]) => {
+        p += `${key}=${val}&`;
+      })
+      p = p.substring(0, p.length);
+      if(getResponse)
+        return await fetch(`${this.nominatim}/${route}?${p}`, options);
+      return await (await fetch(`${this.nominatim}/${route}?${p}`, options)).json()
     }
 
 }

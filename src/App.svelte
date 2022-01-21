@@ -3,7 +3,7 @@
 </svelte:head>
 
 <script>
-  import { WIDGET_DEFAULT_DIMENSION, WIDGET_MAX_DIMENSION, WIDGET_MIN_DIMENSION, BACKGROUND, WIDGET_NAME, WIDGET_ID, CONFIGURATION, DEFAULT_CONFIGURATION } from "./widget/Content/Constants";
+  import { WIDGET_DEFAULT_DIMENSION, WIDGET_MAX_DIMENSION, WIDGET_MIN_DIMENSION, BACKGROUND, WIDGET_NAME, WIDGET_ID, CONFIGURATION, DEFAULT_CONFIGURATION } from "./widgets/widget/Constants";
   import Wrapper from "./components/Wrapper.svelte";
   import WidgetOptions from './components/widgetOptions.svelte';
   import Grid from "svelte-grid";
@@ -12,6 +12,7 @@
   import { onMount } from 'svelte';
   import { mdiContentSave, mdiDelete, mdiPencil, mdiCog } from "@mdi/js";
   import Card from './components/WidgetCard.svelte';
+  import dictionary from "./widgets/widget/lang/it.json";
 
   // Get APIKEY
   const url = new URL(window.location.href);
@@ -62,7 +63,7 @@
       background: BACKGROUND,
       name: WIDGET_NAME,
       state: JSON.parse(localStorage.getItem("widget-state-save")),
-      widget: (await import("./widget/Content/Widget.svelte")).default
+      widget: (await import("./widgets/widget/Widget.svelte")).default
     });
   }
 
@@ -189,6 +190,9 @@
                       dataItem.state = e.detail;
                       localStorage.setItem("widget-state-save", JSON.stringify(e.detail));
                   }}
+                  lang="it"
+                  widgetId={null}
+                  {dictionary}
                 />  
 
               {/if}

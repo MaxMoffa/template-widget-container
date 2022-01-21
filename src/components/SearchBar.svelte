@@ -9,7 +9,13 @@
     export let getOptions = async () => [];
     export let showOptions = false;
 
+    let textField;
     let value = "";
+
+    function focusInput() {
+        if(textField)
+            textField.focus();
+    }
 
     function updateOptions() {
         showOptions = false;
@@ -27,9 +33,9 @@
 
 <main>
 
-    <Dialog class="pa-4 text-center" bind:active>
+    <Dialog class="pa-4 text-center" bind:active on:introend={focusInput}>
 
-        <TextField bind:value solo {placeholder} on:keypress={updateOptions}>
+        <TextField bind:inputElement={textField} bind:value solo {placeholder} on:keypress={updateOptions}>
             <div slot="append">
               <Icon path={mdiMagnify} />
             </div>

@@ -1,14 +1,22 @@
 <script>
+    import { Icon } from 'svelte-materialify/src';
     import { createEventDispatcher } from 'svelte';
     const dispatch = createEventDispatcher();
 
     export let title = "Esempio";
-    export let img = ""
+    export let icon = ""
     export let background = "#000";
     export let maxDimension = false;
 
     const click = () => {
         dispatch("click");
+    }
+
+    const getIcon = async (s) => {
+        let icons = await import('@mdi/js');
+        if(s)
+            return icons[s];
+        return icons.mdiLeaf;
     }
 
 </script>
@@ -17,7 +25,11 @@
 
     <div class="preview" style={`background-color: ${background}`}>
 
-        <img src={`data:image/png;base64,${img}`} alt={title}>
+        {#await getIcon(icon) then path}
+        
+            <Icon {path} size={48} />
+
+        {/await}
 
     </div>
 

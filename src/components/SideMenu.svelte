@@ -1,15 +1,19 @@
 <script>
-    import { AppBar, Button, Icon, Chip, SlideGroup, SlideItem } from 'svelte-materialify';
+    import { AppBar, Button, Icon, Chip, SlideGroup, SlideItem } from 'svelte-materialify/src';
     import { mdiClose } from '@mdi/js';
     import WidgetElement from '../components/widgetElement.svelte';
     import * as WidgetIndex from "../widgets/index";
     import { createEventDispatcher } from 'svelte';
+    import NetworkUtils from '../utils/network_utils';
     const dispatch = createEventDispatcher();
 
     export let isVisible = false;
     export let isContentVisible = false;
-    let topics = ["Tutti", "Analitici", "Georeferenziati", "Smart", "Admin"]
+    export let token;
+    export let dictionary =  new LangUtils("en", {}); 
+    let topics = ["Tutti", "Analitico", "Georeferenziato", "Smart", "Admin"]
     let headerClass = "elevation-0";
+    let category = 0;
 
     $: {
         if(isVisible)
@@ -47,6 +51,23 @@
         }, 0);
     }
 
+    async function elenco_widget() {
+        let p = new FormData();
+        p.append("token", token);
+        try {
+            let data = await NetworkUtils.getServerUtenti("lista_widget", {
+                method: "POST",
+                body: p
+            });
+            if(data.response_code === 200)
+                return data.result;
+            return [];
+        } catch (error) {
+            console.log(error);
+            return [];
+        }
+    }
+
 </script>
 
 {#if isVisible}
@@ -58,7 +79,7 @@
             <div class={`header ${headerClass}`}>
 
                 <AppBar class="elevation-0" style="background-color: transparent">
-                    <span slot="title">I miei widget</span>
+                    <span slot="title">{dictionary.getString("myWidgets")}</span>
                     <div style="flex-grow:1" />
                     <Button icon class="black-text" on:click={closeMenu}>
                         <Icon path={mdiClose} />
@@ -67,12 +88,12 @@
         
                 <div class="topics">
 
-                    <SlideGroup mandatory value={[0]}>
+                    <SlideGroup mandatory bind:value={category}>
                     
                         {#each topics as topic}
                         
                             <SlideItem let:active>
-                                <Chip outlined={!active} class="ma-2" link>{topic}</Chip>
+                                <Chip outlined={!active} class="ma-2" link>{dictionary.getString(topic)}</Chip>
                             </SlideItem>
 
                         {/each}
@@ -85,29 +106,50 @@
 
             <div class="widget-list">
 
-                                    
-                {#each WidgetIndex.widgetsList as widget}
+                {#await elenco_widget()}
 
-                    {#if !widget.isAdmin}
-                    
-                        <div class="widget-container">
+                {:then widgets}
+                
+                    {#each widgets as widget}
 
-                            <WidgetElement 
-                                title={widget.name}
-                                background={"#abcdef"}
-                                maxDimension
-                                on:click={() => {
-                                    dispatch("addWidget", widget.id);
-                                    closeMenu();
-                                }}
-                            />
-                            
-                        </div>
+                        {#if category === 0 || widget.famiglia === topics[category]}
+                        
+                            <div class="widget-container">
 
-                    {/if}
-                    
-                {/each}
+                                <WidgetElement 
+                                    icon={widget.icon}
+                                    title={widget.nome}
+                                    background={widget.color}
+                                    maxDimension
+                                    on:click={() => {
+                                        dispatch("addWidget", widget.widget_id);
+                                        closeMenu();
+                                    }}
+                                />
+                                
+                            </div>
 
+                        {/if}
+                        
+                    {/each}
+
+                    <div class="widget-container">
+
+                        <WidgetElement 
+                            icon={"mdiBeta"}
+                            title={"Widget Risk ß"}
+                            background={"#ABCDEF"}
+                            maxDimension
+                            on:click={() => {
+                                dispatch("addWidget", "widget_geomap_risk");
+                                closeMenu();
+                            }}
+                        />
+                        
+                    </div>
+
+                {/await}                    
+                
             </div>
 
         </div>
@@ -119,7 +161,7 @@
 <style>
 
     main {
-        position: absolute;
+        position: fixed;
         top: 0;
         right: 0;
         width: 100vw;
@@ -155,6 +197,7 @@
         width: 100%;
         height: auto;
         background-color: #fff;
+        z-index: 1;
     }
 
     main > .side-menu > .header > .topics {

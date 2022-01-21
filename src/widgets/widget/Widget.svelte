@@ -1,13 +1,11 @@
 
 <script>
     /* NON MODIFICARE -> INIZIO */ 
-    export let showResult, showError, showLoading, showMaintenance, showProgressBar, updateProgressBar, getFormData, saveState, state, showOptions_;
+    export let showResult, showError, showLoading, showMaintenance, showProgressBar, updateProgressBar, getFormData, saveState, state, showOptions_, getDictionary;
     export let WIDGET_VISIBLE = false;
     /* NON MODIFICARE -> FINE */ 
 
-    showOptions_();
-
-    console.log(state);
+    let dict = getDictionary();
 
     /* ESEMPIO FUNZIONAMENTO ->  INIZIO */
     import { Button } from 'svelte-materialify/src';
@@ -23,19 +21,19 @@
 
     <!-- ESEMPIO FUNZIONAMENTO ->  INIZIO -->
     <Button on:click={() => showError("Esempio di errore")}>
-        Mostra errore
+        {dict.getString("showError")}
     </Button>
 
     <Button class="primary title-text" on:click={() => showMaintenance("Esempio di manutenzione")}>
-        Mostra manutenzione
+        {dict.getString("showMaintenance")}
     </Button>
 
     <Button class="secondary secondary-title-text" on:click={() => showLoading("Esempio di caricamento")}>
-        Mostra caricamento generale
+        {dict.getString("showGeneralLoading")}
     </Button>
 
     <Button class="accent description-text" on:click={() => showProgressBar("Esempio di caricamento con barra", 75)}>
-        Mostra caricamento con barra
+        {dict.getString("showLoadingBar")}
     </Button>
 
     <!-- ESEMPIO FUNZIONAMENTO ->  FINE -->

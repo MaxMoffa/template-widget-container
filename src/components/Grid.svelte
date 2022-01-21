@@ -1,7 +1,8 @@
 <script>
 
-    import { Icon, Chip, Button, SlideGroup, SlideItem } from 'svelte-materialify/src';
-    import { mdiShare, mdiReload, mdiPencil, mdiPlus, mdiCog, mdiFileOutline, mdiContentSave, mdiDelete } from '@mdi/js';
+    import { Icon, List, ListItem, Button, ProgressCircular } from 'svelte-materialify/src';
+    import { mdiCog, mdiDelete, mdiContentDuplicate } from '@mdi/js';
+    import gridHelp from "svelte-grid/build/helper/index.mjs";
     import * as WidgetIndex from "../widgets/index";
     import { onMount } from "svelte";
     import Grid from "svelte-grid";
@@ -9,6 +10,8 @@
     import Wrapper from './Wrapper.svelte';
     import WidgetOptions from './widgetOptions.svelte';
     import { createEventDispatcher } from 'svelte';
+    import domtoimage from 'dom-to-image';
+	import LangUtils from '../utils/lang_utils';
     const dispatch = createEventDispatcher();
 
     export let token = null;
@@ -22,34 +25,17 @@
     export let isContentVisible = false;
     export let parent = null;
     export let itemsId = null;
+    export let contextMenuCustom = true;
+    export let dictionary =  new LangUtils("en", {}); 
+    export let isGridCustomizable = true;
 
     let oldModifyMode = modifyMode;
     let oldItemsId = itemsId;
     let oldItemsLength = items.length;
     let updateWidget = false;
 
-    $: {
-        if(itemsId !== null && itemsId !== oldItemsId){
-            oldItemsId = itemsId;
-            initGrid();
-        }else if(oldItemsLength < items.length){
-            oldItemsLength = items.length;
-            prepareWidget(items[0])
-            .then(result => {
-                _items = [...[result], ..._items];
-                if(modifyMode)
-                    updateGrid();
-            });
-        }else if(modifyMode !== oldModifyMode){
-            oldModifyMode = modifyMode;
-            updateGridState();
-        }else {
-            updateWidget = true;
-            setTimeout(() => {
-                updateWidget = false;
-            }, 0);
-        }
-    }
+    $: items, update();
+    $: modifyMode, updateModifyMode();
 
     // Grid variables
     const id = () => "_" + Math.random().toString(36).substr(2, 9);
@@ -65,6 +51,10 @@
     // Widget params default
     let params;
     
+    // Context menu
+    let contextMenu;
+    let isContextMenuVisible = null;
+
     onMount(() => {
 
         updateGridRowHeight();
@@ -89,13 +79,48 @@
                 reloadGrid();
             }
 
+        } else {
+            isContentVisible = true;
         }
 
     });
 
+    // Update after modify mode change
+    function updateModifyMode() {
+        if(isGridCustomizable)
+            update();
+        else
+            modifyMode = false;
+    }
+
+    // Core,update
+    function update() {
+        isContextMenuVisible = null;
+        console.log(itemsId + " === " + oldItemsId);
+        if(itemsId === null || itemsId !== oldItemsId){
+            oldItemsId = itemsId;
+            initGrid();
+        }else if(oldItemsLength === items.length-1){
+            oldItemsLength = items.length;
+            prepareWidget(items[0])
+            .then(result => {
+                _items = [result, ..._items];
+                if(modifyMode)
+                    updateGrid();
+            });
+        }else if(modifyMode !== oldModifyMode){
+            oldModifyMode = modifyMode;
+            updateGridState();
+        }else {
+            updateWidget = true;
+            setTimeout(() => {
+                updateWidget = false;
+            }, 0);
+        }
+    }
+
     // Init the grid
     function initGrid() {
-        console.log(itemsId);
         prepareGrid(items)
         .then(result => {
             _items = result;
@@ -104,7 +129,10 @@
             console.log(e);
             _items = [];
         })
-        .finally(() => reloadGrid());
+        .finally(() => {
+            reloadGrid();
+            isContentVisible = true;
+        });
     }
 
     // Update the grid state
@@ -121,11 +149,11 @@
     function updateGrid() {
 
         let cloneItems = JSON.parse(JSON.stringify(_items));
-        let items = cloneItems.map(item => {
+        items = cloneItems.map(item => {
             delete item.widget;
             return item;
-        })
-
+        });
+        oldItemsLength = items.length;
         dispatch("update", items);
     }
 
@@ -165,8 +193,6 @@
     // Remove widget from grid
     function removeWidget(item) {
         _items = _items.filter((value) => value.id !== item.id);
-        items = items.filter((value) => value.id !== item.id);
-        oldItemsLength--;
         updateGrid();
     }
 
@@ -228,6 +254,90 @@
         return "";
     }
 
+    function duplicateWidget(item) {
+        let newItem = {
+            ...item,
+            state: JSON.parse(JSON.stringify(item.state)),
+            id: id()
+        };
+                
+        // Find a new spot for the widget
+        let findOutPosition = gridHelp.findSpace(newItem, items, cols);
+
+        // Update the new item
+        newItem = {
+            ...newItem,
+            [cols]: {
+            ...newItem[cols],
+            ...findOutPosition,
+            },
+        };
+
+        _items = [newItem, ..._items];
+        updateGrid();
+    }
+
+    function showContextMenu(item, e) {
+        if(!contextMenuCustom)
+            return;
+        let p = getPosition(e.detail.e);
+        contextMenu.style.top = p.y - 6 + "px";
+        contextMenu.style.left = p.x - 6 + "px";
+        isContextMenuVisible = {
+            item,
+            ref: e.detail.ref
+        };
+    }
+
+    function getPosition(e) {
+        var posx = 0;
+        var posy = 0;
+
+        if (!e) var e = window.event;
+        
+        if (e.pageX || e.pageY) {
+            posx = e.pageX;
+            posy = e.pageY;
+        } else if (e.clientX || e.clientY) {
+            posx = e.clientX + container.scrollLeft;
+            posy = e.clientY + container.scrollTop;
+        }
+
+        return {
+            x: posx,
+            y: posy
+        }
+    }
+
+    function getScreen(node, width=null, height=null) {
+        document.querySelectorAll(".hide").forEach(node => {
+            node.style.visibility = "hidden";
+        });
+        if(width)
+            node.style.width = width;
+        if(height)
+            node.style.height = height;
+        domtoimage.toPng(node)
+        .then(function (dataUrl) {
+            let a = document.createElement("a");
+            a.href = dataUrl;
+            a.setAttribute("download", "screenshot.jpg");
+            a.click();
+        })
+        .catch(function (error) {
+            console.error('oops, something went wrong!', error);
+        })
+        .finally(() => {
+            if(width)
+                node.style.width = "100%";
+            if(height)
+                node.style.height = "100%";      
+            document.querySelectorAll(".hide").forEach(node => {
+                node.style.visibility = "visible";
+            });     
+        });
+    }
+
 </script>
 
 <!-- Main -->
@@ -239,11 +349,48 @@
         <div style="height: 32px;"></div>
     {/if}
 
+    <!-- context menu -->
+    <div bind:this={contextMenu} class="context-menu elevation-2 rounded white" isVisible={isContextMenuVisible !== null} on:mouseleave={() => isContextMenuVisible = null}>
+        <List dense>
+            <ListItem disabled class="grey-text">
+                {isContextMenuVisible ? isContextMenuVisible.item.propreties.WIDGET_NAME : ""}
+            </ListItem>
+            <ListItem on:click={() => {
+                getScreen(isContextMenuVisible.ref.parentElement);
+                isContextMenuVisible = null;
+            }}>
+                Screenshot
+            </ListItem>
+            {#if isGridCustomizable}
+                {#if isContextMenuVisible && isCustomizable(isContextMenuVisible.item.state)}
+                    <ListItem on:click={() => {
+                        optionsDataItem = isContextMenuVisible.item;
+                        isContextMenuVisible = null;
+                    }}>
+                        {dictionary.getString("modify")}
+                    </ListItem>
+                {/if}
+                <ListItem on:click={() => {
+                    duplicateWidget(isContextMenuVisible.item);
+                    isContextMenuVisible = null;
+                }}>
+                    {dictionary.getString("duplicate")}
+                </ListItem>
+                <ListItem on:click={() => {
+                    removeWidget(isContextMenuVisible.item);
+                    isContextMenuVisible = null;
+                }}>
+                    {dictionary.getString("delete")}
+                </ListItem>
+            {/if}
+        </List>
+    </div>
+
     <!-- Show/Hide content (for reload) -->
     {#if isContentVisible}
     
         <!-- Check if there are items -->
-        {#if items.length === 0}
+        {#if _items.length === 0}
 
             <!-- No items -->
             <div class="no-data-grid">
@@ -252,7 +399,7 @@
                         <img src="./media/grape_pack/drawkit-grape-pack-illustration-7.svg" height="300" alt="Empty">
                     </div>
                     <div>
-                        Ops! La griglia è vuota
+                        {dictionary.getString("emptyGridError")}
                     </div>
                     <div>
                         <slot name="empty"/>
@@ -299,16 +446,21 @@
 
                                     {#if isCustomizable(dataItem.state)}
 
-                                        <Button outlined class="yellow yellow-text darken-3 text-darken-3 mb-1" on:click={() => optionsDataItem = dataItem}>
+                                        <Button class="yellow white-text darken-3 text-darken-3 mb-1" depressed on:click={() => optionsDataItem = dataItem}>
                                             <Icon path={mdiCog} class="mr-3" />
-                                            Modifica
+                                            {dictionary.getString("modify")}
                                         </Button>
                                         
                                     {/if}
 
-                                    <Button outlined class="red red-text" on:click={() => removeWidget(dataItem)}>
+                                    <Button class="primary-color mb-1" depressed on:click={() => duplicateWidget(dataItem)}>
+                                        <Icon path={mdiContentDuplicate} class="mr-3" />
+                                        {dictionary.getString("duplicate")}
+                                    </Button>
+
+                                    <Button class="red white-text" depressed on:click={() => removeWidget(dataItem)}>
                                         <Icon path={mdiDelete} class="mr-3" />
-                                        Rimuovi
+                                        {dictionary.getString("remove")}
                                     </Button>
                                 </div>
 
@@ -318,10 +470,13 @@
 
                             <!-- Widget wrapper -->
                             <Wrapper 
+                                widgetId={dataItem.propreties.WIDGET_ID}
+                                lang={dictionary.getLang()}
                                 sessionID={`${window._gridSessionID}`}
                                 widget={dataItem.widget} 
                                 state={dataItem.hasOwnProperty("state") ? dataItem.state : null}
                                 parent={getContainer()}
+                                disableContextMenu
                                 on:saveState={(e) => {
                                     dataItem.state = e.detail;                                    
                                     updateGrid();
@@ -329,6 +484,7 @@
                                 on:changeOptions={(e) => {
                                     optionsDataItem = dataItem;
                                 }}
+                                on:contextmenu={(e) => showContextMenu(dataItem, e)}
                                 {...params}
                             />
 
@@ -342,9 +498,17 @@
 
         {/if}
 
+    {:else}
+
+        <div class="loading">
+
+            <ProgressCircular indeterminate color="primary" />
+
+        </div>
+
     {/if}
 
-    {#if optionsDataItem !== null}
+    {#if optionsDataItem !== null && isGridCustomizable}
 
         <WidgetOptions 
             widget={optionsDataItem.widget} 
@@ -354,6 +518,8 @@
             name={optionsDataItem.propreties.WIDGET_NAME}
             background={optionsDataItem.propreties.BACKGROUND}
             configuration={optionsDataItem.propreties.CONFIGURATION}
+            widgetId={optionsDataItem.propreties.WIDGET_ID}
+            {dictionary}
             on:saveState={(e) => {
                 optionsDataItem.state = e.detail;
                 updateGrid();
@@ -395,6 +561,14 @@
         height: auto;   
     }
 
+    .loading {
+        width: 100%;
+        height: auto; 
+        display: grid;
+        place-items: center;  
+        padding: 64px 0;
+    }
+
     .no-data-grid > div > div{
         width: 100%;
         text-align: center;
@@ -428,6 +602,18 @@
         margin: 0 auto;
         padding-bottom: 128px;
         background-color: #f1f1f1;
+    }
+
+    /* Context menu */
+    .context-menu {
+        width: 128px;
+        position: fixed;
+        z-index: 1000;
+        display: none;
+    }
+
+    .context-menu[isVisible=true] {
+        display: block;
     }
 
 </style>

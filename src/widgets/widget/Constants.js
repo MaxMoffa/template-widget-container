@@ -18,10 +18,10 @@ export const BACKGROUND = "#fff";
 // Widget configuration
 export const CONFIGURATION = [
     {
-        name: "Generale",
+        name: "general",
         options: [
             {
-                name: "Colore pulsanti",
+                name: "btnColors",
                 key: "btn_color",
                 type: "select",
                 options: [
@@ -30,22 +30,22 @@ export const CONFIGURATION = [
                         value: "standard"
                     },
                     {
-                        name: "Rosso",
+                        name: "red",
                         value: "red"
                     },
                     {
-                        name: "Blu",
+                        name: "blu",
                         value: "blue"
                     }
                 ]
             },
             {
-                name: "Data compleanno",
+                name: "birthdayDate",
                 key: "birthday_date",
                 type: "date"
             },
             {
-                name: "Testo pulsanti bold",
+                name: "btnTextColor",
                 key: "btn_text_color",
                 type: "checkbox"
             }

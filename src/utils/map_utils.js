@@ -113,6 +113,13 @@ export default class Map {
         }else{
             geodecode = await this.getGeodecodedPosition();
         }
+        if(config.hasOwnProperty("moveend"))
+            this._map.on("moveend", config.moveend);
+
+        if(config.hasOwnProperty("zoomend"))
+            this._map.on("zoomend", config.zoomend);
+        if(geodecode === null)
+            return;
         this._lastPlace = geodecode;
         this._lastGeoLevel = this.getGeoLevel();
         if(config.hasOwnProperty("updatePlace"))
@@ -121,13 +128,6 @@ export default class Map {
             this._data = await config.getData(geodecode);
         this._geojson = await NetworUtils.getGeoPromise(geodecode, this.getGeoLevel(), this._params);
         this.updateGeojsonConfiguration(config)
-
-        if(config.hasOwnProperty("moveend"))
-            this._map.on("moveend", config.moveend);
-
-        if(config.hasOwnProperty("zoomend"))
-            this._map.on("zoomend", config.zoomend);
-
     }
 
     // Update geojson data
@@ -145,7 +145,7 @@ export default class Map {
     
             // Check place
             let geodecode = await this.getGeodecodedPosition();
-            if(geodecode.hasOwnProperty("error")){
+            if(geodecode === null){
                 this._lock = false;
                 return;
             }
@@ -246,6 +246,8 @@ export default class Map {
     async getGeodecodedPosition(){
         let center = this.getCenter();
         let result = await NetworUtils.geodecode(center.lat, center.lng, this.getGeoLevel(), this._params);
+        if(result.hasOwnProperty("error"))
+            return null;
         return result;
     }
 

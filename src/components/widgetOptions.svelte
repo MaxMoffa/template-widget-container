@@ -4,6 +4,9 @@
     import Wapper from "./Wrapper.svelte";
     import PlaceSelector from './PlaceSelector.svelte';
     import { createEventDispatcher } from 'svelte';
+    import DateSelector from './DateSelector.svelte';
+    import TextSelect from './TextSelect.svelte';
+	import LangUtils from '../utils/lang_utils';
 	const dispatch = createEventDispatcher();
 
     export let widget = null;
@@ -13,6 +16,8 @@
     export let token = null;
     export let apikey = null;
     export let background = "#ffffff";
+	export let widgetId = null;
+    export let dictionary = new LangUtils("en", {});
 
     let reloadWidgetOptions = true;
     let reloadWidget = true;
@@ -21,10 +26,19 @@
     let lastScrollTop = 0;
     let optionContainer;
 
+    let dict = null;
+
     // Variables
     let search_showOptions = true;
 
-    onMount(() => {
+    onMount(async () => {
+
+
+		// Load dictionary
+		if(widgetId)
+			dict = getDictionary(await loadDictionary(widgetId, dictionary.getLang()));
+		else
+			dict = getDictionary(null);
 
         if(state === null){
             state = {};
@@ -38,7 +52,37 @@
         if(state && typeof(state) === "object" && !state.hasOwnProperty("_timer_refresh"))
             state._timer_refresh = -1;
 
-    })
+    });
+
+    async function loadDictionary(id, lang) {
+		try {
+
+            // Import index
+            let index = (await import(`../widgets/${id}/lang/index.json`)).default;
+
+            // Select dictionary
+            if(index.includes(lang))
+                return (await import(`../widgets/${id}/lang/${lang}.json`)).default;
+
+            // Fallback language
+            if(index.length > 0)
+                return (await import(`../widgets/${id}/lang/${index[0]}.json`)).default;
+
+            return true;
+
+        } catch (error) {
+
+            // console.log(error);
+            return true;
+        
+        }
+	}
+
+	function getDictionary(dict=null) {
+        if(dict && typeof(dict) === "object")
+            return new LangUtils(dictionary.getLang(), dict);
+        return new LangUtils(dictionary.getLang(), {});
+    }
 
     function reload(reloadOptions = true) {
         
@@ -113,6 +157,13 @@
             shadowHeader = "elevation-1"
     }
 
+    function getOptionsSelect(options) {
+        options.forEach(i => {
+            i.name = dict.getString(i.name);
+        });
+        return options;
+    }
+
 </script>
 
 <main on:click={(e) => {
@@ -143,6 +194,8 @@
                         {#if reloadWidget}
                         
                             <Wapper 
+                                {widgetId}
+                                lang={dictionary.getLang()}
                                 {widget}
                                 state={JSON.parse(JSON.stringify(state))}
                                 {apikey}
@@ -178,14 +231,14 @@
 
                 <Col>
 
-                    {#if reloadWidgetOptions}
+                    {#if reloadWidgetOptions && dict}
                         
                         {#each configuration as section}
 
                             <div class="section-options">
 
                                 <Subheader>
-                                    {section.name}
+                                    {dict.getString(section.name)}
                                 </Subheader>
 
                                 <div class="options-container">
@@ -199,10 +252,10 @@
                                                 {#if option.type === "select"}
                                                 
                                                     <div class="text-subtitle-1 grey-text text-darken-1">
-                                                        {option.name}
+                                                        {dict.getString(option.name)}
                                                     </div>
 
-                                                    <Select disabled={isDisabled(option)} items={option.options} bind:value={state[option.key]} on:change={reload}>
+                                                    <Select disabled={isDisabled(option)} items={getOptionsSelect(option.options)} bind:value={state[option.key]} on:change={reload}>
                                                     </Select>
 
                                                 {:else if option.type === "checkbox"}
@@ -211,29 +264,65 @@
                                                         state[option.key] = e.target.checked;
                                                         reload();
                                                     }}>
-                                                        {option.name}
+                                                        {dict.getString(option.name)}
                                                     </Checkbox>
 
                                                 {:else if option.type === "date"}
 
                                                     <div class="text-subtitle-1 grey-text text-darken-1">
-                                                        {option.name}
+                                                        {dict.getString(option.name)}
                                                     </div>
 
-                                                    <input 
+                                                    <DateSelector
+                                                        date 
                                                         disabled={isDisabled(option)}
-                                                        type="date" 
-                                                        value={state[option.key] ? new Date(state[option.key]).toISOString().split("T")[0] : null}
-                                                        on:change={(e) => {                                                               
-                                                            state[option.key] = e.target.valueAsNumber ? e.target.valueAsNumber : null;
+                                                        value={state[option.key] ? new Date(state[option.key]) : null}
+                                                        on:change={(e) => {                                                                 
+                                                            let d = typeof(e.detail) === "string" ? e.detail : e.detail.getTime();              
+                                                            state[option.key] = d;
                                                             reload();
                                                         }} 
+                                                        acceptString={option.hasOwnProperty("acceptString") ? option.acceptString : false}
                                                     />
+
+                                                {:else if option.type === "date_async"}
+
+                                                    <div class="text-subtitle-1 grey-text text-darken-1">
+                                                        {dict.getString(option.name)}
+                                                    </div>
+
+                                                    <Select items={["Oggi", "Ieri", "Personalizzata"]} on:change={(e) => {
+                                                        if(typeof(state[option.key]) !== "object")
+                                                            state[option.key] = {type: null, value: null, valueNumeric: null}
+                                                        state[option.key].type = e.detail !== [] ? e.detail : null;
+                                                        if(e.detail === "Ieri")
+                                                            state[option.key].value = () => {
+                                                                let d = new Date();
+                                                                d.setDate(d.getDate()-1);
+                                                                return d.getTime();
+                                                            }
+                                                        else if(e.detail === "Oggi")
+                                                            state[option.key].value = () => new Date().getTime();
+                                                        else
+                                                            state[option.key].value = () => state[option.key].valueNumeric;
+
+                                                    }}></Select>
+                                                    {#if state[option.key].type === "Personalizzata"}
+                                                        <DateSelector
+                                                            date 
+                                                            disabled={isDisabled(option)}
+                                                            value={state[option.key].valueNumeric ? new Date(state[option.key]) : null}
+                                                            on:change={(e) => {                                   
+                                                                state[option.key].valueNumeric = e.detail.getTime();
+                                                                reload();
+                                                            }} 
+                                                        />
+                                                    {/if}
 
                                                 {:else if option.type === "select_async"}
 
                                                     <div class="text-subtitle-1 grey-text text-darken-1">
-                                                        {option.name}
+                                                        {dict.getString(option.name)}
                                                     </div>
 
                                                     {#await getAsyncSelect(option.url, option.map)}
@@ -248,16 +337,16 @@
                                                 {:else if option.type === "select_multiple"}
                                                 
                                                     <div class="text-subtitle-1 grey-text text-darken-1">
-                                                        {option.name}
+                                                        {dict.getString(option.name)}
                                                     </div>
 
-                                                    <Select disabled={isDisabled(option)} multiple items={option.options} bind:value={state[option.key]} on:change={reload}>
+                                                    <Select disabled={isDisabled(option)} multiple items={getOptionsSelect(option.options)} bind:value={state[option.key]} on:change={reload}>
                                                     </Select>
 
                                                 {:else if option.type === "place"}
                                                 
                                                     <div class="text-subtitle-1 grey-text text-darken-1">
-                                                        {option.name}
+                                                        {dict.getString(option.name)}
                                                     </div>
 
                                                     <div class="map-widget-options rounded">
@@ -272,7 +361,7 @@
                                                 {:else if option.type === "text"}
                                                 
                                                     <div class="text-subtitle-1 grey-text text-darken-1">
-                                                        {option.name}
+                                                        {dict.getString(option.name)}
                                                     </div>
 
                                                     <TextField 
@@ -284,71 +373,17 @@
                                                 {:else if option.type === "search"}
                                                 
                                                     <div class="text-subtitle-1 grey-text text-darken-1">
-                                                        {option.name}
+                                                        {dict.getString(option.name)}
                                                     </div>
 
                                                     <div style="width: 100%">
-                                                        <Menu style="width: 100%">
-                                                            <div slot="activator" style="width: 100%">
-                                                                <TextField 
-                                                                    filled 
-                                                                    bind:value={state[option.key].key}
-                                                                    {...option.options}
-                                                                    on:keydown={() => {
-                                                                        search_showOptions = false;
-                                                                        setTimeout(() => {
-                                                                            search_showOptions = true;
-                                                                        }, 0);
-                                                                    }}
-                                                                    on:focus={() => {
-                                                                        search_showOptions = false;
-                                                                        setTimeout(() => {
-                                                                            search_showOptions = true;
-                                                                        }, 0);
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                            <List>
-
-                                                                {#if state[option.key] && search_showOptions}
-            
-                                                                    {#await option.getOptions(state[option.key].key, getParams())}
-                                                                        <ListItem>
-                                                                            ...
-                                                                        </ListItem>
-                                                                    {:then result} 
-                                                                    
-                                                                        {#if result.length === 0}
-                                                                            <ListItem>
-                                                                                Nessun risultato
-                                                                            </ListItem>
-                                                                        {/if}
-                                                    
-                                                                        {#each result as o}
-                                                                        
-                                                                            <ListItem on:click={() => {
-                                                                                state[option.key] = o;
-                                                                                reload();
-                                                                            }}>
-                                                                                {o.key}
-                                                                            </ListItem>
-                                                    
-                                                                        {/each}
-                                                    
-                                                                        <slot />
-                                                                    
-                                                                    {:catch e}
-                                                    
-                                                                        <ListItem>
-                                                                            Ops! Sembra esserci un problema
-                                                                        </ListItem>
-                                                    
-                                                                    {/await}
-                                                    
-                                                                {/if}
-                                                                
-                                                            </List>
-                                                        </Menu>
+                                                        <TextSelect
+                                                            filled
+                                                            bind:value={state[option.key]}
+                                                            on:change={() => reload(false)}
+                                                            itemsAsync={option.getOptions}
+                                                            {getParams}
+                                                        />
                                                     </div>
 
                                                 {/if}
@@ -368,7 +403,7 @@
                         <div class="section-options">
 
                             <Subheader>
-                                Opzioni aggiuntive
+                                {dictionary.getString("additionalOptions")}
                             </Subheader>
 
                             <div class="options-container">
@@ -378,15 +413,15 @@
                                     <div class="option-list-element">
 
                                         <div class="text-subtitle-1 grey-text text-darken-1">
-                                            Refresh automatico
+                                            {dictionary.getString("automaticRefresh")}
                                         </div>
 
                                         <Select items={[
-                                            {name: "Disablitato", value: -1},
-                                            {name: "Ogni minuto", value: 60 * 1000 * 1},
-                                            {name: "Ogni 5 min", value: 60 * 1000 * 5},
-                                            {name: "Ogni 10 min", value: 60 * 1000 * 10},
-                                            {name: "Ogni 15 min", value: 60 * 1000 * 15},
+                                            {name: dictionary.getString("disabled"), value: -1},
+                                            {name: dictionary.getString("everyMinutes"), value: 60 * 1000 * 1},
+                                            {name: dictionary.getString("every5Minutes"), value: 60 * 1000 * 5},
+                                            {name: dictionary.getString("every10Minutes"), value: 60 * 1000 * 10},
+                                            {name: dictionary.getString("every15Minutes"), value: 60 * 1000 * 15},
                                         ]} bind:value={state._timer_refresh} on:change={reload}>
                                         </Select>
 
@@ -413,7 +448,7 @@
 <style>
 
     main {
-        position: absolute;
+        position: fixed;
         width: 100%;
         height: 100%;
         top: 0;

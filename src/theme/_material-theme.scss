@@ -1,5 +1,5 @@
-$primary-color: #a1e5ab;
-$primaryFocused-color: #8fcc99;
+$primary-color: #009688;
+$primaryFocused-color: #00796b;
 
 $secondary-color: #eeeeee;
 $secondaryFocused-color: #a1e5ab;
@@ -19,6 +19,10 @@ $error-color: #f44336;
 /* 
     Text
 */
+
+.primary-color-text {
+    color: $primary-color;
+}
 
 .title-text {
     color: $primary-text;

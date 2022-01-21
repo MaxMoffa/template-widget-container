@@ -1,9 +1,10 @@
 <script>
 	import { ProgressCircular, ProgressLinear, Icon, Button } from 'svelte-materialify/src';
 	import { mdiAlertBox, mdiAccountHardHat, mdiCog, mdiCheckBold } from '@mdi/js';
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import IntersectionObserver from "svelte-intersection-observer";
 	import { Boundary } from '@crownframework/svelte-error-boundary';
+	import LangUtils from '../utils/lang_utils';
 	const dispatch = createEventDispatcher();
 
 	export let token = null;
@@ -14,6 +15,10 @@
 	export let widget;
 	export let sessionID = null;
 	export let parent = null;
+	export let disableContextMenu = false;
+	export let widgetId = null;
+	export let lang = "en";
+	export let dictionary = {};
 
 	// Status options
 	const LOADING = 0, DONE = 1, ERROR = -1, MAINTENANCE = 2, CONFIRM = 3;
@@ -25,6 +30,7 @@
 	let reload = false;
 	let _interval = null;
 	let isVisible = false;
+	let dict = null;
 
 	let showOptionsBtn = false;
 
@@ -37,6 +43,49 @@
 	let LOADING_VALUE = 0;
 	let maintenancePriority = false;
 
+	onMount(async () => {
+
+		// Load dictionary
+		if(widgetId)
+			dict = await loadDictionary(widgetId, lang);
+		else
+			dict = true;
+
+	});
+
+	async function loadDictionary(id, lang) {
+		try {
+
+            // Import index
+            let index = (await import(`../widgets/${id}/lang/index.json`)).default;
+
+            // Select dictionary
+            if(index.includes(lang))
+                return (await import(`../widgets/${id}/lang/${lang}.json`)).default;
+
+            // Fallback language
+            if(index.length > 0)
+                return (await import(`../widgets/${id}/lang/${index[0]}.json`)).default;
+
+            return true;
+
+        } catch (error) {
+
+            // console.log(error);
+            return true;
+        
+        }
+	}
+
+	function getDictionary() {
+		let dict;
+        if(typeof(dict) === "object")
+            dict = new LangUtils(lang, dict);
+		else
+        	dict = new LangUtils(lang, {});
+		dict.addDictionary(dictionary);
+		return dict;
+    }
 
 	function showResult() {
 		if(maintenancePriority)
@@ -103,7 +152,6 @@
 			params.append("token", token);
 		else if(apikey)
 			params.append("apikey", apikey);
-
 		return params
 	}
 
@@ -182,11 +230,17 @@
 		});
 	}
 
+	function contextmenu(e) {
+		if(disableContextMenu)
+			e.preventDefault();
+		dispatch("contextmenu", {e, ref: MAIN_REF});
+	}
+
 </script>
 
 <IntersectionObserver once element={MAIN_REF} root={parent} bind:intersecting={isVisible}>
 
-	<main bind:this={MAIN_REF}>
+	<main bind:this={MAIN_REF} on:contextmenu={contextmenu}>
 
 		{#if showOptionsBtn}
 		
@@ -205,7 +259,7 @@
 
 		{/if}
 		
-		{#if !reload && isVisible}
+		{#if !reload && isVisible && dict}
 			
 			<Boundary onError={e => showError(e)}>
 				<svelte:component
@@ -223,6 +277,7 @@
 					{saveState}
 					{showOptions_}
 					{openOptions}
+					{getDictionary}
 					on:changeOptions={() => {
 						if(showContextualOptions){
 							dispatch("changeOptions", {
@@ -401,7 +456,7 @@
 
 		{/if}
 
-		{#if !isVisible}
+		{#if !isVisible || !dict}
 
 			<div class="GENERIC_CONTAINER">
 
@@ -416,7 +471,7 @@
 					</div>
 
 					<span>
-						Il widget non è visibile					
+											
 					</span>
 
 					<div class="btn-reload">

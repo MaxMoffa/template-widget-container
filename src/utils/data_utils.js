@@ -22,6 +22,10 @@ export default class DataUtils {
                 return "H2S";
             case "o3":
                 return "O3";
+            case "temperatura":
+                return "Temperature";
+            case "umidita":
+                return "Humidity";
             default:
                 return type;
         }
@@ -49,6 +53,10 @@ export default class DataUtils {
                 return "h2s";
             case "O3":
                 return "o3";
+            case "Temperature":
+                return "temperatura";
+            case "Humidity":
+                return "umidita";
             default:
                 return type;
         }
@@ -62,6 +70,10 @@ export default class DataUtils {
                 return "";
             case "intensita_vento":
                 return "m/s";
+            case "temperatura":
+                return "°C";
+            case "umidita":
+                return "%"
             default:
                 return fallback;
         }
@@ -119,6 +131,16 @@ export default class DataUtils {
                     max: 240,
                     middle: 180
                 };
+            case "temperatura":
+                return {
+                    max: 40,
+                    middle: 20
+                };
+            case "umidita":
+                return {
+                    max: 80,
+                    middle: 40
+                };
             default:
                 return type;
         }
@@ -135,7 +157,9 @@ export default class DataUtils {
             "co",
             "o3",
             "so2",
-            "h2s"
+            "h2s",
+            "temperatura",
+            "umidita"
         ];
     }
 
