@@ -1,8 +1,12 @@
 <script>
     import moment from 'moment';
     import { Row, Col, Ripple, Button } from 'svelte-materialify/src';
-    import { createEventDispatcher } from 'svelte';
+    import { createEventDispatcher, onDestroy } from 'svelte';
+    import { theme, getBackground } from '../store/theme';
     const dispatch = createEventDispatcher();
+
+    let _theme = "light";
+    let unsubscribeTheme = theme.subscribe(val => _theme = val);
 
     export let value = null;
     export let date = false;
@@ -12,6 +16,8 @@
     export let disabled = false;
     export let now = true;
     export let acceptString = false;
+    export let min = null;
+    export let max = null;
 
     if(datetime && (date || time)){
         date = false;
@@ -27,6 +33,10 @@
     let hasDatetimeValue = false;
 
     let nowSelected = false;
+
+    onDestroy(() => {
+        unsubscribeTheme();
+    });
 
     const update = (e) => {
         if(value)
@@ -104,6 +114,24 @@
         dispatch("change", value);
     }
 
+    function isInsideRange(min, max) {
+        let result = true;
+        let now = moment();
+        if(min)
+            result = moment(min).isBefore(now);
+        if(max)
+            result = moment(max).isAfter(now);
+        return result;
+    }
+
+    function isNotToday(val) {
+        if(!val)
+            return true;
+        if(val === "today")
+            return false;
+        return moment(val).isSame(moment());
+    }
+
 </script>
 
 {#if label}
@@ -112,24 +140,24 @@
     </div>
 {/if}
 
-<div class="selectorContent rounded-t grey lighten-3 grey-text text-lighten-1" use:Ripple>
+<div class="selectorContent rounded-t {getBackground(_theme)} grey-text text-lighten-1" use:Ripple>
     <Row style="height: 100%" class="ma-0 pa-0">
         {#if date}
             <Col class="ma-0 pa-0">
-                <input disabled={disabled} type="date" class="pl-2 pt-4 pb-4 pr-2 mb-0 grey-text text-darken-1" bind:value={_date} on:change={update} hasValue={hasDateValue} />
+                <input isDark={_theme === "dark"} disabled={disabled} {min} {max} type="date" class="pl-2 pt-4 pb-4 pr-2 mb-0 grey-text text-darken-1" bind:value={_date} on:change={update} hasValue={hasDateValue} />
             </Col>
         {/if}
         {#if time}
             <Col class="ma-0 pa-0" cols={date ? 3 : undefined}>
-                <input disabled={disabled} type="time" class="pl-2 pt-4 pb-4 pr-2 mb-0 text-center grey-text text-darken-1" bind:value={_time} on:change={update} hasValue={hasTimeValue} />
+                <input isDark={_theme === "dark"} disabled={disabled} {min} {max} type="time" class="pl-2 pt-4 pb-4 pr-2 mb-0 text-center grey-text text-darken-1" bind:value={_time} on:change={update} hasValue={hasTimeValue} />
             </Col>
         {/if}
         {#if datetime}
             <Col class="ma-0 pa-0">
-                <input disabled={disabled} type="datetime-local" class="pl-2 pt-4 pb-4 pr-2 mb-0 grey-text text-darken-1" bind:value={_datetime} on:change={update} hasValue={hasDatetimeValue} />
+                <input isDark={_theme === "dark"} disabled={disabled} {min} {max} type="datetime-local" class="pl-2 pt-4 pb-4 pr-2 mb-0 grey-text text-darken-1" bind:value={_datetime} on:change={update} hasValue={hasDatetimeValue} />
             </Col>
         {/if}
-        {#if now && !nowSelected}
+        {#if now && !nowSelected && isInsideRange(min, max) && isNotToday(value)}
             <Col cols={"auto"} class="ma-0 pa-0 primary-color-text">
                 <div class="selector pa-2" style="width: 100%; height: 100%; display: grid; place-items: center">
                     <Button {disabled} outlined depressed on:click={setNow}>
@@ -164,6 +192,14 @@
 
     input[hasValue = true] {
         color: #000 !important;
+    }
+
+    input:focus[isDark = true] {
+        color: #fff !important;
+    }
+
+    input[hasValue = true][isDark = true] {
+        color: #fff !important;
     }
 
 </style>

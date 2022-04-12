@@ -13,7 +13,17 @@ export const WIDGET_MAX_DIMENSION =  { w: 10, h: 10 };
 export const WIDGET_MIN_DIMENSION =  { w: 1, h: 1 };
 
 // Widget style
-export const BACKGROUND = "#fff";
+export const DARK_MODE_SUPPORTED = false;
+
+export const THEME = {
+    light: "#fff",
+    dark : "#000"
+};
+
+export const TEXT_COLOR = {
+    light: "#000",
+    dark : "#fff"
+};
 
 // Widget configuration
 export const CONFIGURATION = [

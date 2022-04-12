@@ -1,5 +1,5 @@
 <script>
-    import { Icon } from 'svelte-materialify/src';
+    import { Icon, Ripple } from 'svelte-materialify/src';
     import { createEventDispatcher } from 'svelte';
     const dispatch = createEventDispatcher();
 
@@ -19,11 +19,15 @@
         return icons.mdiLeaf;
     }
 
+    const getBackground = color => {
+        return `background: linear-gradient(180deg, ${color} 0%, rgba(0,0,0,0) 100%);`;
+    };
+
 </script>
 
-<main on:click={click} style={`${maxDimension ? "width: 100% !important; margin: 0 !important; min-width: 0 !important" : ""}`}>
+<main class="elevation-1" on:click={click} use:Ripple style={`${maxDimension ? "width: 100% !important; margin: 0 !important; min-width: 0 !important" : ""}`}>
 
-    <div class="preview" style={`background-color: ${background}`}>
+    <div class="preview" style={getBackground(background)}>
 
         {#await getIcon(icon) then path}
         
@@ -47,7 +51,6 @@
         max-width: 300px;
         height: 95%;
         border-radius: 6px;
-        border: 1px solid grey;
         display: inline-flex;
         flex-direction: column;
         overflow: hidden;
@@ -55,10 +58,7 @@
         scroll-snap-align: center;
         margin: 0 32px;
         background-color: #f1f1f1;
-    }
-
-    main:hover {
-        background-color: grey;
+        user-select: none;
     }
 
     .preview {

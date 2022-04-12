@@ -3,7 +3,7 @@
 </svelte:head>
 
 <script>
-  import { WIDGET_DEFAULT_DIMENSION, WIDGET_MAX_DIMENSION, WIDGET_MIN_DIMENSION, BACKGROUND, WIDGET_NAME, WIDGET_ID, CONFIGURATION, DEFAULT_CONFIGURATION } from "./widgets/widget/Constants";
+  import * as properties from "./widgets/widget/Constants";
   import Wrapper from "./components/Wrapper.svelte";
   import WidgetOptions from './components/widgetOptions.svelte';
   import Grid from "svelte-grid";
@@ -37,15 +37,15 @@
 
   onMount(() => {
     if(!localStorage.getItem("widget-state-save"))
-      localStorage.setItem("widget-state-save", JSON.stringify(DEFAULT_CONFIGURATION));
+      localStorage.setItem("widget-state-save", JSON.stringify(properties.DEFAULT_CONFIGURATION));
     if(!localStorage.getItem("widget-position-save"))
       localStorage.setItem("widget-position-save", JSON.stringify({
         x: 0,
         y: 0,
-        w: WIDGET_DEFAULT_DIMENSION.w,
-        h: WIDGET_DEFAULT_DIMENSION.h,
-        max: WIDGET_MAX_DIMENSION,
-        min: WIDGET_MIN_DIMENSION,
+        w: properties.WIDGET_DEFAULT_DIMENSION.w,
+        h: properties.WIDGET_DEFAULT_DIMENSION.h,
+        max: properties.WIDGET_MAX_DIMENSION,
+        min: properties.WIDGET_MIN_DIMENSION,
       }));
     addWidget()
     .then(() => console.log("widget loaded"));
@@ -59,9 +59,9 @@
         fixed: !isResizable
       }),
       id: id(),
-      widgetId: WIDGET_ID,
-      background: BACKGROUND,
-      name: WIDGET_NAME,
+      widgetId: properties.WIDGET_ID,
+      BACKGROUND: properties.BACKGROUND,
+      name: properties.WIDGET_NAME,
       state: JSON.parse(localStorage.getItem("widget-state-save")),
       widget: (await import("./widgets/widget/Widget.svelte")).default
     });
@@ -116,8 +116,8 @@
         y: items[0][COLS].y,
         w: items[0][COLS].w,
         h: items[0][COLS].h,
-        max: WIDGET_MAX_DIMENSION,
-        min: WIDGET_MIN_DIMENSION,
+        max: properties.WIDGET_MAX_DIMENSION,
+        min: properties.WIDGET_MIN_DIMENSION,
     }));
   }
 
@@ -144,7 +144,7 @@
 
           <Grid bind:items={items} rowHeight={70} let:item let:dataItem {cols}>
 
-            <Card background={dataItem.background}>
+            <Card>
 
               {#if isResizable}
 
@@ -154,7 +154,7 @@
                   <div>
 
                       <span style="text-align: center;" class="mb-6">
-                          {WIDGET_NAME}
+                          {properties.WIDGET_NAME}
                       </span>
 
                       {#if isCustomizable(dataItem.state)}
@@ -177,6 +177,7 @@
               {:else}
 
                 <Wrapper 
+                  {properties}
                   widget={dataItem.widget}
                   apikey={APIKEY}
                   state={dataItem.state}
@@ -206,12 +207,13 @@
         {#if isOptionsVisible !== null}
 
           <WidgetOptions 
-              name={WIDGET_NAME}
+              name={properties.WIDGET_NAME}
               widget={isOptionsVisible} 
               apikey={APIKEY} 
               state={optionsState} 
-              configuration={CONFIGURATION}
-              background={BACKGROUND}
+              configuration={properties.CONFIGURATION}
+              background={properties.BACKGROUND}
+              {properties}
               on:saveState={(e) => {
                   optionsDataItem.state = e.detail;
                   isOptionsVisible = null;

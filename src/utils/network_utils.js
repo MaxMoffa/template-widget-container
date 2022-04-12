@@ -7,7 +7,8 @@
 export default class NetworkUtils {
 
     static server = "square.sensesquare.eu";
-    static nominatim = "http://193.205.184.32";
+    //static nominatim = "https://eu1.locationiq.com/v1";
+    static nominatim = "https://nominatim.sensesquare.eu/nominatim/";
     static server_lettura = `https://${this.server}:5001/`;
     static server_utenti = `https://${this.server}:5002/`;
 
@@ -32,7 +33,7 @@ export default class NetworkUtils {
           if(result.response_code === 200)
             resolve(result.result);
           else
-            reject(result.message);
+            reject(result);
         })
         .catch(e => reject(e));
       });
@@ -211,14 +212,26 @@ export default class NetworkUtils {
     }
 
     static async getNominatim(route, params={}, options={}, getResponse=false){
-      let p = "";
+      //let p = "key=pk.04c2467ae7df5d59f25bbedc5a2872d1&";
+      let p = ""
       Object.entries(params).forEach(([key, val]) => {
         p += `${key}=${val}&`;
       })
       p = p.substring(0, p.length);
       if(getResponse)
-        return await fetch(`${this.nominatim}/${route}?${p}`, options);
-      return await (await fetch(`${this.nominatim}/${route}?${p}`, options)).json()
+        return await fetch(`${this.nominatim}/${route}.php?${p}`, options);
+      return await (await fetch(`${this.nominatim}/${route}.php?${p}`, options)).json()
+    }
+
+    static async getGeoData(place, options, params=new FormData(), getResponse=false) {
+      for(const [key, val] of Object.entries(place))
+        params.append(key, val);
+      for(const [key, val] of Object.entries(options))
+        params.append(key, val);
+      return await this.getServerLettura("placeView", {
+        method: "POST",
+        body: params
+      }, getResponse);
     }
 
 }

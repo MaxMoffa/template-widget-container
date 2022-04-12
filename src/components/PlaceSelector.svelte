@@ -4,6 +4,7 @@
     import { Chip, Icon } from 'svelte-materialify/src';
     import { mdiClose } from '@mdi/js';
     import { createEventDispatcher } from 'svelte';
+    import { teal } from 'svelte-materialify/src/utils/colors';
     const dispatch = createEventDispatcher();
 
     export let params = new FormData();
@@ -57,8 +58,8 @@
         if(!placeSelected)
             return style;
         if(feature.properties.name === placeSelected.name){
-            style.color = "#ffeb3b";
-            style.fillColor = "#ffeb3b";
+            style.color = teal.base;
+            style.fillColor = teal.base;
         }
         return style;
     };
@@ -91,7 +92,7 @@
 
 </script>
 
-<main>
+<main class="rounded elevation-1">
     
     <div class="map-place-selector" bind:this={mapRef} />
 

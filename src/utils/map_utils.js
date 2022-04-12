@@ -60,7 +60,7 @@ export default class Map {
     // Get map geolevel
     getGeoLevel(){
         let zoom = this._map.getZoom();
-        return Map._getGeoLevel(zoom)
+        return Map._getGeoLevel(zoom);
     }
 
     // Get geolevel
@@ -71,7 +71,7 @@ export default class Map {
             return 1;
         if(zoom < 11)
             return 2;
-        if(zoom < 14)
+        if(zoom < 13)
             return 3;
         return 4;
     }
@@ -85,8 +85,8 @@ export default class Map {
         if(geolevel === 2)
             return 10;
         if(geolevel === 3)
-            return 13;
-        return 14;
+            return 12;
+        return 13;
     }
 
     // Get zoom base from geolevel
@@ -100,38 +100,56 @@ export default class Map {
             return 9;
         if(geolevel === 3)
             return 11;
-        return 14;
+        return 13;
     }
 
     // Load geojson on the map
     async loadGeojson(config={}, path=null) {
+
         let geodecode;
         if(path !== null){
             geodecode = path.path;
-            this.setCenter(path.center);
-            this.setZoom(path.zoom);
+            //this.setCenter(path.center);
+            //this.setZoom(path.zoom);
         }else{
             geodecode = await this.getGeodecodedPosition();
         }
+        
         if(config.hasOwnProperty("moveend"))
             this._map.on("moveend", config.moveend);
 
         if(config.hasOwnProperty("zoomend"))
             this._map.on("zoomend", config.zoomend);
+
+        if(config.hasOwnProperty("popupopen"))
+            this._map.on("popupopen", config.popupopen);
+
+        if(config.hasOwnProperty("popupclose"))
+            this._map.on("popupclose", config.popupclose);
+
         if(geodecode === null)
-            return;
+            geodecode = {};
+
         this._lastPlace = geodecode;
-        this._lastGeoLevel = this.getGeoLevel();
+        this._lastGeoLevel = path === null ? this.getGeoLevel() : Map._getGeoLevel(path.zoom);
+        let geolevel = this._lastGeoLevel;
+
+        if(!geodecode.hasOwnProperty("nazione")){
+            geolevel = 0;
+        }
+
         if(config.hasOwnProperty("updatePlace"))
-                config.updatePlace(geodecode);
+            config.updatePlace(geodecode);
+
         if(config.hasOwnProperty("getData"))
-            this._data = await config.getData(geodecode);
-        this._geojson = await NetworUtils.getGeoPromise(geodecode, this.getGeoLevel(), this._params);
+            this._data = await config.getData(geodecode, geolevel);
+
+        this._geojson = await NetworUtils.getGeoPromise(geodecode, geolevel, this._params);
         this.updateGeojsonConfiguration(config)
     }
 
     // Update geojson data
-    async updateGeojson(config, forceDownload=false){
+    async updateGeojson(config, forceDownload=false, path=null){
 
         try {
             
@@ -144,16 +162,44 @@ export default class Map {
             let checkGeoLevel = this._lastGeoLevel !== this.getGeoLevel();
     
             // Check place
-            let geodecode = await this.getGeodecodedPosition();
-            if(geodecode === null){
-                this._lock = false;
-                return;
+            let geodecode;
+            let checkPlace;
+
+            if(path === null) {
+
+                geodecode = await this.getGeodecodedPosition();
+             
+                if(geodecode === null){
+                    this._lock = false;
+                    return;
+                }
+
+                let p1 = {
+                    ...this._lastPlace
+                }
+
+                let p2 = {
+                    ...geodecode
+                }
+
+                let keys = Object.keys(p1);
+                let lastKey = keys[keys.length - 1];
+                delete p1[lastKey];
+                if(p2.hasOwnProperty(lastKey))
+                    delete p2[lastKey];
+
+                checkPlace = JSON.stringify(p1) !== JSON.stringify(p2);
+                
+            }else {
+
+               geodecode = path.path;
+               checkPlace = true; 
+               
             }
-            let checkPlace = JSON.stringify(this._lastPlace) !== JSON.stringify(geodecode);
     
             // Update attributes
             this._lastPlace = geodecode;
-            this._lastGeoLevel = this.getGeoLevel();
+            this._lastGeoLevel = path === null ? this.getGeoLevel() : Map._getGeoLevel(path.zoom);
 
             if(config.hasOwnProperty("updatePlace"))
                 config.updatePlace(geodecode);
@@ -165,13 +211,21 @@ export default class Map {
                     return;
                 }
             }
+
+            let geolevel = this._lastGeoLevel;
+
+            if(geodecode === null){
+                geolevel = 0;
+                geodecode = {};
+            }
     
             if(config.hasOwnProperty("getData"))
-                this._data = await config.getData(geodecode);
+                this._data = await config.getData(geodecode, geolevel);
             else
                 this._data = null;
-            this._geojson = await NetworUtils.getGeoPromise(geodecode, this.getGeoLevel(), this._params);
-            this.updateGeojsonConfiguration(config)
+
+            this._geojson = await NetworUtils.getGeoPromise(geodecode, geolevel, this._params);
+            this.updateGeojsonConfiguration(config);
             this._lock = false;
 
         } catch (error) {
@@ -183,9 +237,15 @@ export default class Map {
 
     }
 
+    // No download, only reload map
+    refreshMap(config=null) {
+        if(config)
+            this.updateGeojsonConfiguration(config);
+    }
+
     // Update geojson configuration 
     updateGeojsonConfiguration(config) {
-
+        console.log("GO");
         // Remove all the layers from the map
         this._layerGroup.clearLayers();
 
@@ -300,6 +360,13 @@ export default class Map {
             this._popup.remove();
     }
 
+    // Check if popup id open
+    isPopupOpen() {
+        if(this._popup)
+            return this._popup.isOpen();
+        return false;
+    }
+
     // Get bounding box
     static getBoundingBox(f) {
         let result = [];
@@ -312,6 +379,13 @@ export default class Map {
     // Get map types
     static getMapTypes() {
         return ["Standard", "OpenTopoMap", "OPNVKarte", "CyclOSM", "Stamen.Toner", "Stamen.TerrainBackground", "Esri.DeLorme", "Esri.WorldTopoMap", "Esri.WorldImagery", "Esri.WorldShadedRelief", "MtbMap", "NASAGIBS.ViirsEarthAtNight2012"];
+    }
+
+    // Set geojson and data passed
+    async loadStatic(geojson, data, config) {
+        this._data = data;
+        this._geojson = geojson;
+        this.updateGeojsonConfiguration(config);
     }
 
 }

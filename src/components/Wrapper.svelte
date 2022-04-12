@@ -1,10 +1,15 @@
 <script>
 	import { ProgressCircular, ProgressLinear, Icon, Button } from 'svelte-materialify/src';
 	import { mdiAlertBox, mdiAccountHardHat, mdiCog, mdiCheckBold } from '@mdi/js';
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher, onMount, onDestroy } from 'svelte';
 	import IntersectionObserver from "svelte-intersection-observer";
 	import { Boundary } from '@crownframework/svelte-error-boundary';
 	import LangUtils from '../utils/lang_utils';
+	import { theme, getBackground, getColor } from '../store/theme';
+
+    let _theme = "light";
+    let unsubscribeTheme = theme.subscribe(val => _theme = val);
+
 	const dispatch = createEventDispatcher();
 
 	export let token = null;
@@ -12,13 +17,14 @@
 	export let state = null;
 	export let showOptions = true;
 	export let showContextualOptions = true;
-	export let widget;
 	export let sessionID = null;
 	export let parent = null;
 	export let disableContextMenu = false;
 	export let widgetId = null;
 	export let lang = "en";
-	export let dictionary = {};
+	export let widget;
+	export let properties;
+	export let padding = 0;
 
 	// Status options
 	const LOADING = 0, DONE = 1, ERROR = -1, MAINTENANCE = 2, CONFIRM = 3;
@@ -53,6 +59,12 @@
 
 	});
 
+	onDestroy(() => {
+		if(_interval)
+			clearInterval(_interval);
+		unsubscribeTheme();
+	});
+
 	async function loadDictionary(id, lang) {
 		try {
 
@@ -78,13 +90,9 @@
 	}
 
 	function getDictionary() {
-		let dict;
         if(typeof(dict) === "object")
-            dict = new LangUtils(lang, dict);
-		else
-        	dict = new LangUtils(lang, {});
-		dict.addDictionary(dictionary);
-		return dict;
+            return new LangUtils(lang, dict);
+        return new LangUtils(lang, {});
     }
 
 	function showResult() {
@@ -236,97 +244,159 @@
 		dispatch("contextmenu", {e, ref: MAIN_REF});
 	}
 
+	function _getTheme(theme) {
+		if(properties.DARK_MODE_SUPPORTED)
+			return `theme--${theme}`;
+		return "theme--light";
+	}
+
+	function _getColor(theme) {
+		if(properties.DARK_MODE_SUPPORTED){
+			return {
+				background: properties.THEME[theme],
+				text: properties.TEXT_COLOR[theme],
+				background_dashboard: getBackground(theme),
+				color_dashboard: getColor(theme),
+				theme
+			}
+		}
+		return {
+			background: properties.THEME["light"],
+			text: properties.TEXT_COLOR["light"],
+			background_dashboard: getBackground("light"),
+			color_dashboard: getColor("light"),
+			theme: "light"
+		}
+	}
+
 </script>
 
 <IntersectionObserver once element={MAIN_REF} root={parent} bind:intersecting={isVisible}>
 
-	<main bind:this={MAIN_REF} on:contextmenu={contextmenu}>
+	{#if widget && properties}
+	
+		<main class="{_getTheme(_theme)} pa-{padding}" style="background: {_getColor(_theme).background}" bind:this={MAIN_REF} on:contextmenu={contextmenu}>
 
-		{#if showOptionsBtn}
-		
-			<div class="btn-menu-options" on:click={() => dispatch("changeOptions", {
-					widget: widget,
-					state: state
-				})
-			}>
-
-				<Icon 
-					size="16"
-					path={mdiCog} 
-				/>
-
-			</div>
-
-		{/if}
-		
-		{#if !reload && isVisible && dict}
+			{#if showOptionsBtn}
 			
-			<Boundary onError={e => showError(e)}>
-				<svelte:component
-					this={widget} 
-					WIDGET_VISIBLE={STATUS_WIDGET === DONE}
-					{showResult}
-					{showConfirm}
-					{showError}
-					{showMaintenance}
-					{showLoading}
-					{showProgressBar}
-					{updateProgressBar}
-					{getFormData}
-					state={getState()}
-					{saveState}
-					{showOptions_}
-					{openOptions}
-					{getDictionary}
-					on:changeOptions={() => {
-						if(showContextualOptions){
-							dispatch("changeOptions", {
-								widget: widget,
-								state: state
-							});
-						}
-					}}
-				/>
-			</Boundary>
+				<div class="btn-menu-options" on:click={() => dispatch("changeOptions", {
+						widget: widget,
+						state: state
+					})
+				}>
 
-			{#if STATUS_WIDGET === LOADING}
+					<Icon 
+						size="16"
+						path={mdiCog} 
+					/>
+
+				</div>
+
+			{/if}
 			
-				{#if LOADING_TYPE === GENERIC_LOADING}
+			{#if !reload && isVisible && dict}
+				
+				<Boundary onError={e => {	
+					console.log(e);
+									
+					//e.preventDefault();
+					showError(e);
+				}}>
+					<svelte:component
+						this={widget} 
+						WIDGET_VISIBLE={STATUS_WIDGET === DONE}
+						{showResult}
+						{showConfirm}
+						{showError}
+						{showMaintenance}
+						{showLoading}
+						{showProgressBar}
+						{updateProgressBar}
+						{getFormData}
+						state={getState()}
+						{saveState}
+						{showOptions_}
+						{openOptions}
+						{getDictionary}
+						color={_getColor(_theme)}
+						on:changeOptions={() => {
+							if(showContextualOptions){
+								dispatch("changeOptions", {
+									widget: widget,
+									state: state
+								});
+							}
+						}}
+						on:changeChildOptions={(e) => {
+							dispatch("changeChildOptions", e.detail);
+						}}
+					/>
+				</Boundary>
 
-					<div class="GENERIC_CONTAINER">
+				{#if STATUS_WIDGET === LOADING}
+				
+					{#if LOADING_TYPE === GENERIC_LOADING}
 
-						<div>
-							
-							<div class="loading-element">
-								<ProgressCircular 
-									size={70} 
-									indeterminate 
-									color="success" 
-								/>
-							</div>
+						<div class="GENERIC_CONTAINER">
 
-							<span>
-								{TEXT_DESCRIPTION}
-							</span>
+							<div>
+								
+								<div class="loading-element">
+									<ProgressCircular 
+										size={70} 
+										indeterminate 
+										color="success" 
+									/>
+								</div>
 
-							<div class="btn-reload">
-								<Button size="small" on:click={reloadWidget}>
-									Riavvia
-								</Button>
+								<span>
+									{TEXT_DESCRIPTION}
+								</span>
+
+								<div class="btn-reload">
+									<Button size="small" on:click={reloadWidget}>
+										Riavvia
+									</Button>
+								</div>
+
 							</div>
 
 						</div>
 
-					</div>
+					{:else}
 
-				{:else}
+						<div class="GENERIC_CONTAINER">
 
+							<div>
+								<ProgressLinear 
+									height="16px" 
+									value={LOADING_VALUE} 
+								/>
+
+								<span>
+									{TEXT_DESCRIPTION}
+								</span>
+
+								<div class="btn-reload">
+									<Button size="small" on:click={reloadWidget}>
+										Riavvia
+									</Button>
+								</div>
+
+							</div>
+
+						</div>
+
+					{/if}
+
+				{:else if STATUS_WIDGET === ERROR}
+				
 					<div class="GENERIC_CONTAINER">
 
 						<div>
-							<ProgressLinear 
-								height="16px" 
-								value={LOADING_VALUE} 
+							<Icon 
+								size="64"
+								path={mdiAlertBox} 
 							/>
 
 							<span>
@@ -337,6 +407,89 @@
 								<Button size="small" on:click={reloadWidget}>
 									Riavvia
 								</Button>
+
+								{#if state && showContextualOptions}
+
+									<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
+										if(showContextualOptions){
+											dispatch("changeOptions", {
+												widget: widget,
+												state: state
+											});
+										}
+									}}>
+										Opzioni
+									</Button>
+
+								{/if}
+
+							</div>
+
+						</div>
+
+					</div>
+
+				{:else if STATUS_WIDGET === CONFIRM}
+				
+					<div class="GENERIC_CONTAINER">
+
+						<div>
+							<Icon 
+								size="64"
+								path={mdiCheckBold} 
+							/>
+
+							<span>
+								{TEXT_DESCRIPTION}
+							</span>
+
+							<div class="btn-reload">
+								
+								<Button size="small" on:click={reloadWidget}>
+									Riavvia
+								</Button>
+
+							</div>
+
+						</div>
+
+					</div>
+				
+				{:else if STATUS_WIDGET === MAINTENANCE}
+
+					<div class="GENERIC_CONTAINER">
+
+						<div>
+							<Icon 
+								size="64"
+								path={mdiAccountHardHat} 
+							/>
+
+							<span>
+								{TEXT_DESCRIPTION}
+							</span>
+
+							<div class="btn-reload">
+								<Button size="small" on:click={reloadWidget}>
+									Riavvia
+								</Button>
+
+								{#if state && showContextualOptions}
+
+									<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
+										maintenancePriority = false;
+										if(showContextualOptions){
+											dispatch("changeOptions", {
+												widget: widget,
+												state: state
+											});
+										}
+									}}>
+										{maintenancePriority ? "Configura" : "Opzioni"}
+									</Button>
+
+								{/if}
+
 							</div>
 
 						</div>
@@ -345,107 +498,30 @@
 
 				{/if}
 
-			{:else if STATUS_WIDGET === ERROR}
-			
+			{/if}
+
+			{#if !isVisible || !dict}
+
 				<div class="GENERIC_CONTAINER">
 
 					<div>
-						<Icon 
-							size="64"
-							path={mdiAlertBox} 
-						/>
-
-						<span>
-							{TEXT_DESCRIPTION}
-						</span>
-
-						<div class="btn-reload">
-							<Button size="small" on:click={reloadWidget}>
-								Riavvia
-							</Button>
-
-							{#if state && showContextualOptions}
-
-								<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
-									if(showContextualOptions){
-										dispatch("changeOptions", {
-											widget: widget,
-											state: state
-										});
-									}
-								}}>
-									Opzioni
-								</Button>
-
-							{/if}
-
+						
+						<div class="loading-element">
+							<ProgressCircular 
+								size={70} 
+								indeterminate 
+								color="success" 
+							/>
 						</div>
 
-					</div>
-
-				</div>
-
-			{:else if STATUS_WIDGET === CONFIRM}
-			
-				<div class="GENERIC_CONTAINER">
-
-					<div>
-						<Icon 
-							size="64"
-							path={mdiCheckBold} 
-						/>
-
 						<span>
-							{TEXT_DESCRIPTION}
-						</span>
-
-						<div class="btn-reload">
-							
-							<Button size="small" on:click={reloadWidget}>
-								Riavvia
-							</Button>
-
-						</div>
-
-					</div>
-
-				</div>
-			
-			{:else if STATUS_WIDGET === MAINTENANCE}
-
-				<div class="GENERIC_CONTAINER">
-
-					<div>
-						<Icon 
-							size="64"
-							path={mdiAccountHardHat} 
-						/>
-
-						<span>
-							{TEXT_DESCRIPTION}
+												
 						</span>
 
 						<div class="btn-reload">
 							<Button size="small" on:click={reloadWidget}>
-								Riavvia
+								Avvia
 							</Button>
-
-							{#if state && showContextualOptions}
-
-								<Button style="margin-top: 6px" class="accent" size="small" on:click={() => {
-									maintenancePriority = false;
-									if(showContextualOptions){
-										dispatch("changeOptions", {
-											widget: widget,
-											state: state
-										});
-									}
-								}}>
-									{maintenancePriority ? "Configura" : "Opzioni"}
-								</Button>
-
-							{/if}
-
 						</div>
 
 					</div>
@@ -453,40 +529,29 @@
 				</div>
 
 			{/if}
+				
+		</main>
 
-		{/if}
+	{:else}
 
-		{#if !isVisible || !dict}
+		<div class="GENERIC_CONTAINER">
 
-			<div class="GENERIC_CONTAINER">
+			<div>
 
-				<div>
-					
-					<div class="loading-element">
-						<ProgressCircular 
-							size={70} 
-							indeterminate 
-							color="success" 
-						/>
-					</div>
+				<Icon 
+					size="64"
+					path={mdiAlertBox} 
+				/>
 
-					<span>
-											
-					</span>
-
-					<div class="btn-reload">
-						<Button size="small" on:click={reloadWidget}>
-							Avvia
-						</Button>
-					</div>
-
-				</div>
+				<span>
+					Widget not found
+				</span>
 
 			</div>
 
-		{/if}
-			
-	</main>
+		</div>
+
+	{/if}
 
 </IntersectionObserver>
 
@@ -500,6 +565,7 @@
 	main {
 		width: 100%;
         height: 100%;
+		overflow-y: auto;
 	}
 
 	.GENERIC_CONTAINER {

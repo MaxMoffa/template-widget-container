@@ -2,23 +2,35 @@
     import { AppBar, Button, Icon, Chip, SlideGroup, SlideItem } from 'svelte-materialify/src';
     import { mdiClose } from '@mdi/js';
     import WidgetElement from '../components/widgetElement.svelte';
-    import * as WidgetIndex from "../widgets/index";
     import { createEventDispatcher } from 'svelte';
     import NetworkUtils from '../utils/network_utils';
     const dispatch = createEventDispatcher();
+    import { theme, getBackground } from '../store/theme';
+    import { onDestroy } from "svelte";
+	import { fly } from 'svelte/transition';
+	import { quintOut } from 'svelte/easing';
 
+    let _theme = "light";
+    let unsubscribeTheme = theme.subscribe(val => _theme = val);
+    
     export let isVisible = false;
     export let isContentVisible = false;
     export let token;
     export let dictionary =  new LangUtils("en", {}); 
+
     let topics = ["Tutti", "Analitico", "Georeferenziato", "Smart", "Admin"]
     let headerClass = "elevation-0";
     let category = 0;
+    let widgets = null;
 
     $: {
         if(isVisible)
             showMenu();
     }
+
+    onDestroy(() => {
+        unsubscribeTheme();
+    });
 
     function updateShadow(e) {
         let scrollTop = e.target.scrollTop;
@@ -52,6 +64,10 @@
     }
 
     async function elenco_widget() {
+
+        if(widgets !== null && Array.isArray(widgets))
+            return widgets;
+
         let p = new FormData();
         p.append("token", token);
         try {
@@ -59,8 +75,11 @@
                 method: "POST",
                 body: p
             });
-            if(data.response_code === 200)
+            if(data.response_code === 200){
+                widgets = data.result
                 return data.result;
+            }
+            widgets = [];
             return [];
         } catch (error) {
             console.log(error);
@@ -74,85 +93,89 @@
 
     <main class="side-menu-container" {isContentVisible} on:click={closeMenuBackground}>
 
-        <div class="side-menu elevation-3" on:scroll={updateShadow} {isContentVisible}>
-
-            <div class={`header ${headerClass}`}>
-
-                <AppBar class="elevation-0" style="background-color: transparent">
-                    <span slot="title">{dictionary.getString("myWidgets")}</span>
-                    <div style="flex-grow:1" />
-                    <Button icon class="black-text" on:click={closeMenu}>
-                        <Icon path={mdiClose} />
-                    </Button>
-                </AppBar>
+        {#if isContentVisible}
         
-                <div class="topics">
+            <div class="side-menu elevation-3 {getBackground(_theme)}" on:scroll={updateShadow} transition:fly="{{delay: 0, duration: 300, x: 350, y: 0, opacity: 0.5, easing: quintOut}}">
 
-                    <SlideGroup mandatory bind:value={category}>
-                    
-                        {#each topics as topic}
+                <div class={`header ${headerClass}`}>
+
+                    <AppBar class="elevation-0 {getBackground(_theme)}" style="background-color: transparent">
+                        <span slot="title">{dictionary.getString("myWidgets")}</span>
+                        <div style="flex-grow:1" />
+                        <Button icon on:click={closeMenu}>
+                            <Icon path={mdiClose} />
+                        </Button>
+                    </AppBar>
+            
+                    <div class="topics {getBackground(_theme)}">
+
+                        <SlideGroup mandatory bind:value={category}>
                         
-                            <SlideItem let:active>
-                                <Chip outlined={!active} class="ma-2" link>{dictionary.getString(topic)}</Chip>
-                            </SlideItem>
+                            {#each topics as topic}
+                            
+                                <SlideItem let:active>
+                                    <Chip outlined={!active} class="ma-2" link>{dictionary.getString(topic)}</Chip>
+                                </SlideItem>
 
+                            {/each}
+
+                        </SlideGroup>
+            
+                    </div>
+
+                </div>
+
+                <div class="widget-list">
+
+                    {#await elenco_widget()}
+
+                    {:then widgets}
+                    
+                        {#each widgets as widget}
+
+                            {#if category === 0 || widget.famiglia === topics[category]}
+                            
+                                <div class="widget-container">
+
+                                    <WidgetElement 
+                                        icon={widget.icon}
+                                        title={widget.nome}
+                                        background={widget.color}
+                                        maxDimension
+                                        on:click={() => {
+                                            dispatch("addWidget", widget.widget_id);
+                                            closeMenu();
+                                        }}
+                                    />
+                                    
+                                </div>
+
+                            {/if}
+                            
                         {/each}
 
-                    </SlideGroup>
-        
+                        <!-- <div class="widget-container">
+
+                            <WidgetElement 
+                                icon={"mdiBeta"}
+                                title={"Widget Risk ß"}
+                                background={"#ABCDEF"}
+                                maxDimension
+                                on:click={() => {
+                                    dispatch("addWidget", "widget_geomap_risk");
+                                    closeMenu();
+                                }}
+                            />
+                            
+                        </div> -->
+
+                    {/await}                    
+                    
                 </div>
 
             </div>
 
-            <div class="widget-list">
-
-                {#await elenco_widget()}
-
-                {:then widgets}
-                
-                    {#each widgets as widget}
-
-                        {#if category === 0 || widget.famiglia === topics[category]}
-                        
-                            <div class="widget-container">
-
-                                <WidgetElement 
-                                    icon={widget.icon}
-                                    title={widget.nome}
-                                    background={widget.color}
-                                    maxDimension
-                                    on:click={() => {
-                                        dispatch("addWidget", widget.widget_id);
-                                        closeMenu();
-                                    }}
-                                />
-                                
-                            </div>
-
-                        {/if}
-                        
-                    {/each}
-
-                    <div class="widget-container">
-
-                        <WidgetElement 
-                            icon={"mdiBeta"}
-                            title={"Widget Risk ß"}
-                            background={"#ABCDEF"}
-                            maxDimension
-                            on:click={() => {
-                                dispatch("addWidget", "widget_geomap_risk");
-                                closeMenu();
-                            }}
-                        />
-                        
-                    </div>
-
-                {/await}                    
-                
-            </div>
-
-        </div>
+        {/if}
 
     </main>
 
@@ -166,7 +189,6 @@
         right: 0;
         width: 100vw;
         height: 100vh;
-        background: rgba(0, 0, 0, 0);
         z-index: 10;    
         transition: 0.3s background ease;
     }
@@ -178,17 +200,11 @@
     main > .side-menu {
         position: fixed;
         top: 0;
-        right: -350px;
+        right: 0;
         width: 350px;
         height: 100vh;
-        background-color: #fff;    
         overflow-y: auto;
         padding-bottom: 64px;
-        transition: 0.5s right ease;
-    }
-
-    main > .side-menu[isContentVisible = true] {
-        right: 0;
     }
 
     main > .side-menu > .header {

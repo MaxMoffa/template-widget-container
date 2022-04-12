@@ -1,10 +1,12 @@
+<svelte:window on:resize={resizeGrid} />
+
 <script>
 
-    import { Icon, List, ListItem, Button, ProgressCircular } from 'svelte-materialify/src';
-    import { mdiCog, mdiDelete, mdiContentDuplicate } from '@mdi/js';
+    import { Icon, List, ListItem, Button, ProgressCircular, ClickOutside } from 'svelte-materialify/src';
+    import { mdiCog, mdiDelete, mdiContentDuplicate, mdiResizeBottomRight } from '@mdi/js';
     import gridHelp from "svelte-grid/build/helper/index.mjs";
     import * as WidgetIndex from "../widgets/index";
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
     import Grid from "svelte-grid";
     import Card from './WidgetCard.svelte';
     import Wrapper from './Wrapper.svelte';
@@ -12,6 +14,8 @@
     import { createEventDispatcher } from 'svelte';
     import domtoimage from 'dom-to-image';
 	import LangUtils from '../utils/lang_utils';
+    import ScreenshotDialog from './ScreenshotDialog.svelte';
+    import { theme, getColor, getBackground } from '../store/theme';
     const dispatch = createEventDispatcher();
 
     export let token = null;
@@ -34,6 +38,12 @@
     let oldItemsLength = items.length;
     let updateWidget = false;
 
+    let _theme = "light";
+    let unsubscribeTheme = theme.subscribe(val => _theme = val);
+
+    if(parent)
+        parent.addEventListener("scroll", hideContextMenu);
+
     $: items, update();
     $: modifyMode, updateModifyMode();
 
@@ -55,6 +65,13 @@
     let contextMenu;
     let isContextMenuVisible = null;
 
+    // Screenshot
+    let img = null;
+    let showScreenshotDialog = false;
+
+    // Resize timer
+    let grid_resize_timer;
+
     onMount(() => {
 
         updateGridRowHeight();
@@ -74,16 +91,21 @@
             // Load grid
             initGrid();
 
-            window.onresize = () => {
-                updateGridRowHeight();
-                reloadGrid();
-            }
-
         } else {
             isContentVisible = true;
         }
 
     });
+
+    onDestroy(() => {
+        if(parent)
+            parent.removeEventListener("scroll", hideContextMenu);
+        unsubscribeTheme();
+    });
+
+    function hideContextMenu() {
+        isContextMenuVisible = null;
+    }
 
     // Update after modify mode change
     function updateModifyMode() {
@@ -147,6 +169,8 @@
 
     // Dispatch the update event
     function updateGrid() {
+
+        console.log("UPDATE");
 
         let cloneItems = JSON.parse(JSON.stringify(_items));
         items = cloneItems.map(item => {
@@ -217,6 +241,7 @@
                 draggable: modifyMode,
                 max: widgetInfo.propreties.WIDGET_MAX_DIMENSION,
                 min: widgetInfo.propreties.WIDGET_MIN_DIMENSION,
+                customResizer: true
             },
             state: item.hasOwnProperty("state") ? item.state : widgetInfo.propreties.DEFAULT_CONFIGURATION,
             widget: widgetInfo.widget,
@@ -282,7 +307,7 @@
             return;
         let p = getPosition(e.detail.e);
         contextMenu.style.top = p.y - 6 + "px";
-        contextMenu.style.left = p.x - 6 + "px";
+        contextMenu.style.left = p.x - 64 + "px";
         isContextMenuVisible = {
             item,
             ref: e.detail.ref
@@ -319,10 +344,8 @@
             node.style.height = height;
         domtoimage.toPng(node)
         .then(function (dataUrl) {
-            let a = document.createElement("a");
-            a.href = dataUrl;
-            a.setAttribute("download", "screenshot.jpg");
-            a.click();
+            img = dataUrl;
+            showScreenshotDialog = true;
         })
         .catch(function (error) {
             console.error('oops, something went wrong!', error);
@@ -338,10 +361,20 @@
         });
     }
 
+    function resizeGrid() {
+        isContentVisible = false;
+        if(grid_resize_timer)
+            clearTimeout(grid_resize_timer);
+        grid_resize_timer = setTimeout(() => {
+            updateGridRowHeight();
+            isContentVisible = true;
+        }, 1000);
+    }
+
 </script>
 
 <!-- Main -->
-<main class:container={parent === null} style={parent === null ? "height: 100% !important" : ""} bind:this={container}>
+<main class:container={parent === null} style={parent === null ? "height: 100% !important" : ""} bind:this={container} on:scroll={() => isContextMenuVisible = null}>
 
     <!-- header -->
 
@@ -350,7 +383,7 @@
     {/if}
 
     <!-- context menu -->
-    <div bind:this={contextMenu} class="context-menu elevation-2 rounded white" isVisible={isContextMenuVisible !== null} on:mouseleave={() => isContextMenuVisible = null}>
+    <div bind:this={contextMenu} use:ClickOutside class="context-menu elevation-2 rounded {getBackground(_theme)}" isVisible={isContextMenuVisible !== null} on:clickOutside={() => isContextMenuVisible = null}>
         <List dense>
             <ListItem disabled class="grey-text">
                 {isContextMenuVisible ? isContextMenuVisible.item.propreties.WIDGET_NAME : ""}
@@ -413,18 +446,19 @@
 
                 <!-- Grid -->
                 <Grid 
-                    on:change={updateGrid} 
+                    on:pointerup={updateGrid} 
                     bind:items={_items} 
                     gap={[3, 3]} 
                     rowHeight={rowHeight} 
                     let:dataItem 
                     cols={COLS} 
                     scroller={getContainer()} 
+                    let:resizePointerDown
                     {fastStart}
                 >
 
                     <!-- Card -->
-                    <Card background={dataItem.propreties.BACKGROUND}>
+                    <Card background="{getColor(_theme)}">
 
                         <!-- Check grid mode -->
                         {#if updateWidget}
@@ -465,6 +499,10 @@
                                 </div>
 
                             </div>
+
+                            <div style="position: absolute; bottom: 0; right: 0; cursor: nwse-resize" class="resizer pa-1" on:pointerdown={resizePointerDown}>
+                                <Icon path={mdiResizeBottomRight} />
+                            </div>
                             
                         {:else}
 
@@ -483,6 +521,9 @@
                                 }}
                                 on:changeOptions={(e) => {
                                     optionsDataItem = dataItem;
+                                }}
+                                on:changeChildOptions={(e) => {
+                                    optionsDataItem = e.detail;
                                 }}
                                 on:contextmenu={(e) => showContextMenu(dataItem, e)}
                                 {...params}
@@ -535,6 +576,8 @@
         />
 
     {/if}
+
+    <ScreenshotDialog image={img} bind:active={showScreenshotDialog} />
 
 </main>
 
@@ -601,7 +644,6 @@
         width: 100%;
         margin: 0 auto;
         padding-bottom: 128px;
-        background-color: #f1f1f1;
     }
 
     /* Context menu */

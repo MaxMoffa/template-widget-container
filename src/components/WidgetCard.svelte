@@ -1,24 +1,17 @@
 <script>
-
-    export let background = "#fff";
-
+    export let background = "";
 </script>
 
-<main class="rounded" style={`background: ${background} !important`}>
+<main class="rounded-lg elevation-1 {background}">
 
     <slot />
 
 </main>
 
 <style>
-
     main {
         height: 100%;
         width: 100%;
-        background-color: #fff;
-        /* border-radius: 16px; */
-        padding: 8px;
-        overflow: auto;
+        overflow: hidden;
     }
-
 </style>
