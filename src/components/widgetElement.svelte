@@ -14,9 +14,13 @@
 
     const getIcon = async (s) => {
         let icons = await import('@mdi/js');
+        let icon;
         if(s)
-            return icons[s];
-        return icons.mdiLeaf;
+            icon = icons[s];
+        else 
+            icon = icons["mdiLeaf"];
+        icons = null;
+        return icon;
     }
 
     const getBackground = color => {

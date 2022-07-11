@@ -18,6 +18,7 @@ export default class Map {
     _geojson = null;
     _tileLayer = null;
     _popup = null;
+    _marker = null;
 
     // Map constructor
     constructor(_params, _mapRef, _config={}) {
@@ -50,6 +51,30 @@ export default class Map {
 
     }
 
+    // Destroy the map
+    destroy() {
+        
+        if(this._map !== null){
+            console.log("MAP DESTROY C", this._map);
+            this._map.off();
+            this._map.remove();
+        }
+
+        this._map = null;
+        this._mapRef = null;
+        this._layerGroup = null;
+        this._config = null;
+        this._place = null;
+        this._params = null;
+        this._lastPlace = null;
+        this._lastGeoLevel = null;
+        this._data = null;
+        this._geojson = null;
+        this._tileLayer = null;
+        this._popup = null;
+        this._marker = null;
+    }
+
     // Load tiles on the map
     applyTiles(name='OpenStreetMap.Mapnik') {
         if(this._tileLayer !== null)
@@ -59,7 +84,7 @@ export default class Map {
 
     // Get map geolevel
     getGeoLevel(){
-        let zoom = this._map.getZoom();
+        let zoom = this.getZoom();
         return Map._getGeoLevel(zoom);
     }
 
@@ -247,7 +272,8 @@ export default class Map {
     updateGeojsonConfiguration(config) {
         console.log("GO");
         // Remove all the layers from the map
-        this._layerGroup.clearLayers();
+        if(this._layerGroup)
+            this._layerGroup.clearLayers();
 
         let layer = L.geoJSON(this._geojson, this.getConfiguration(this._data, config));
         this._layerGroup.addLayer(layer);
@@ -333,7 +359,7 @@ export default class Map {
 
     // Get zoom
     getZoom(){
-        return this._map.getZoom();
+        return Math.ceil(this._map.getZoom());
     }
 
     // Get last place
@@ -358,6 +384,18 @@ export default class Map {
     clearPopup() {
         if(this._popup !== null)
             this._popup.remove();
+    }
+
+    // Show a marker
+    showMarker(latlng, options={}) {
+        this._marker = L.marker(latlng, options)
+            .addTo(this._map);
+    }
+
+    // Clear popup
+    clearMarker() {
+        if(this._marker !== null)
+            this._marker.remove();
     }
 
     // Check if popup id open

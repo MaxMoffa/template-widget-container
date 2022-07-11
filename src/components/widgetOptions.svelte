@@ -1,7 +1,7 @@
 <script>
     import { onDestroy, onMount } from 'svelte';
     import { Checkbox, Col, Select, Chip, Subheader, AppBar, TextField, Overlay, ListItem, List } from 'svelte-materialify/src';
-    import Wapper from "./Wrapper.svelte";
+    import Wapper from "./Wrapper/Wrapper.svelte";
     import PlaceSelector from './PlaceSelector.svelte';
     import { createEventDispatcher } from 'svelte';
     import DateSelector from './DateSelector.svelte';
@@ -23,8 +23,6 @@
     export let background = "#ffffff";
 	export let widgetId = null;
     export let dictionary = new LangUtils("en", {});
-
-    export let properties;
 
     let reloadWidgetOptions = true;
     let reloadWidget = true;
@@ -102,6 +100,7 @@
         Object.keys(old_state).forEach(key => {
             isChanged = isChanged || old_state[key] !== state[key];
         });
+
         if(!isChanged)
             return;
         else
@@ -112,7 +111,7 @@
             reloadWidget = false;
             setTimeout(() => {
                 reloadWidget = true;
-            }, 0);
+            }, 500);
         }, 0);
 
         // Reload widget options
@@ -132,7 +131,7 @@
     }
 
     function saveState() {
-        console.log(state);
+        console.log("SAVE STATE");
         dispatch("saveState", state);
     }
 
@@ -176,7 +175,7 @@
     }
 
     function overlayClick(e) {
-        if(e.target.className.includes("overlay-background"))
+        if(typeof(e.target.className) === "string" && e.target.className.includes("overlay-background"))
             dispatch("close");
     }
 
@@ -221,7 +220,6 @@
                                         {widgetId}
                                         lang={dictionary.getLang()}
                                         {widget}
-                                        {properties}
                                         state={JSON.parse(JSON.stringify(state))}
                                         {apikey}
                                         {token}
@@ -311,10 +309,13 @@
                                                                 <DateSelector
                                                                     date 
                                                                     disabled={isDisabled(option)}
-                                                                    value={state[option.key] ? new Date(state[option.key]) : null}
+                                                                    bind:value={state[option.key]}
                                                                     on:change={(e) => {                                                                 
-                                                                        let d = typeof(e.detail) === "string" ? e.detail : e.detail.getTime();              
-                                                                        state[option.key] = d;
+                                                                        // let d = typeof(e.detail) === "string" ? e.detail : e.detail.getTime();              
+                                                                        // state[option.key] = d;
+                                                                        console.log("reload");
+                                                                        console.log(state);
+                                                                        
                                                                         reload();
                                                                     }} 
                                                                     acceptString={option.hasOwnProperty("acceptString") ? option.acceptString : false}

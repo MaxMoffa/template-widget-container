@@ -19,6 +19,8 @@
     export let min = null;
     export let max = null;
 
+    console.log(value);
+
     if(datetime && (date || time)){
         date = false;
         time = false;
@@ -77,7 +79,7 @@
     function getDate(v=value) {
         if(!v)
             return "";
-        if(v === "today")
+        if(v === "today" || v === "now")
             return moment().format("YYYY-MM-DD");
         return moment(v).format("YYYY-MM-DD");
     }
@@ -85,7 +87,7 @@
     function getDateTime(v=value) {
         if(!v)
             return "";
-        if(v === "today")
+        if(v === "today" || v === "now")
             return moment().format("YYYY-MM-DDTHH:mm");
         return moment(v).format("YYYY-MM-DDTHH:mm");
     }
@@ -93,7 +95,7 @@
     function getTime(v=value) {
         if(!v)
             return "";
-        if(v === "today")
+        if(v === "today" || v === "now")
             return moment().format("HH:mm");
         return moment(v).format("HH:mm");
     }

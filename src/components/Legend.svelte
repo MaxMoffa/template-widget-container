@@ -2,7 +2,8 @@
     import { Tooltip, Ripple, Icon } from 'svelte-materialify/src';
     import { blur } from 'svelte/transition';
     import { mdiPalette } from '@mdi/js';
-    import { createEventDispatcher } from 'svelte';
+    import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+    
     const dispatch = createEventDispatcher();
 
     export let limits = {};
@@ -15,9 +16,17 @@
     export let expand = false;
     export let vertical = false;
 
-    let visible = true;
+    let visible = false;
 
     $: active, update();
+
+    onMount(() => {
+        visible = true;
+    });
+
+    onDestroy(() => {
+        visible = null;
+    });
 
     let limitsLevel = Object.keys(limits);
 

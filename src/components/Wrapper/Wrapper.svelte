@@ -1,14 +1,9 @@
 <script>
 
-    import { ProgressCircular, ProgressLinear, Icon, Button } from 'svelte-materialify/src';
+    import { ProgressCircular, ProgressLinear, Icon, Button, Intersect } from 'svelte-materialify/src';
 	import { mdiAlertBox, mdiHammerWrench, mdiCog, mdiCheckBold } from '@mdi/js';
-	import { createEventDispatcher, onMount, onDestroy } from 'svelte';
-	import IntersectionObserver from "svelte-intersection-observer";
-	import LangUtils from '../utils/lang_utils';
-	import ErrorWrapper from './ErrorWrapper.svelte';
-	import { theme, getBackground, getColor } from '../store/theme';
-	import { blur } from 'svelte/transition';
-	import * as WidgetIndex from '../widgets/index';
+	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+	import { theme, getBackground, getColor } from '../../store/theme';
 
     // Theme handler
     let _theme = "light";
@@ -31,24 +26,23 @@
 	export let properties;
     export let showOptions = true;
 	export let padding = 0;
-    export let sessionID = null;
-	export let parent = null;
 
-	$: state, reloadWidget();
+	// TODO: Capire come risolvere il bug del refresh anomalo
+	// $: state, reloadWidget();
+	$: widgetId, reloadAndReset();
+
+	// Const
+	const NEED_SETUP = "needSetup";
 
 	// Intersection Observer Visibility
 	let isWidgetVisible = false;
-	let isFirstObservation = true;
-
-	// Reload widget
-	let reload = false;
 
 	// Main ref widget
 	let MAIN_REF;
 
 	// Widget ref
 	let WIDGET_REF, WIDGET = null;
-	let off_changeOptions = null, off_changeChildOptions = null;
+	let off_message = null, off_changeOptions = null, off_changeChildOptions = null;
 
 	// Maintenance priority
 	let maintenancePriority = false;
@@ -59,40 +53,20 @@
 		text: "Caricamento in corso",
 	};
 
-	// Reloader props
-	let _stateID = null;
-
-	// Widget dictionary
-	let dict = false;
-
 	// Auto refresh interval
 	let _interval = null;
 
 	// Show button options (if enabled)
 	let showOptionButton = true;
 
-	// Load the widget dictionary on mount
-	onMount(async () => {
+	// Check if setup is done
+	let isFirstReset = true;
+	let isFirstReload = true;
+	let isSetupDone = false;
 
-		// Load widget
-		if(!widget)
-			widget = await WidgetIndex.getWidget(widgetId);
-		
-		// Load properties	
-		if(!properties)
-			properties = await WidgetIndex.getPropreties(widgetId);
+	onMount(() => {
 
-		// Load dictionary
-		if(widgetId)
-			dict = await loadDictionary(widgetId, lang);
-		else
-			dict = true;
-
-		if(isWidgetVisible && widget && properties)
-			loadWidget();
-
-		if(!widget || !properties)
-			showMaintenance("Il widget non è supportato da questa versione di square")
+		setupWidget();
 
 	});
 
@@ -108,38 +82,56 @@
 
 		// Unsubscribe theme store
 		unsubscribeTheme();
+
+		// Reset variables
+		isWidgetVisible = null;
+		MAIN_REF = null;
+		WIDGET_REF = null; 
+		WIDGET = null;
+		off_message = null;
+		off_changeOptions = null;
+		off_changeChildOptions = null;
+		maintenancePriority = null;
+		genericContainer = null;
+		isFirstReload = null;
+		isFirstReset = null;
+		isSetupDone = null;
+		_interval = null;
+		showOptionButton = null;
+		
 	});
 
-	// Load the dictionary for the widget
-	async function loadDictionary(id, lang) {
-		try {
+	// Load the widget
+	async function setupWidget() {
 
-			// Import index
-			let index = (await import(`../widgets/${id}/lang/index.json`)).default;
+		if(!widget || !properties){
 
-			// Select dictionary
-			if(index.includes(lang))
-				return (await import(`../widgets/${id}/lang/${lang}.json`)).default;
+			const WidgetIndex = await import("../../widgets/index");
 
-			// Fallback language
-			if(index.length > 0)
-				return (await import(`../widgets/${id}/lang/${index[0]}.json`)).default;
+			// Load widget
+			if(!widget)
+				widget = await WidgetIndex.getWidget(widgetId);
 
-			return true;
-
-		} catch (error) {
-
-			// console.log(error);
-			return true;
+			// Load properties	
+			if(!properties)
+				properties = await WidgetIndex.getPropreties(widgetId);
 
 		}
-	}
 
-	// Create dictionary object for the widget
-	function getDictionary() {
-		if(typeof(dict) === "object")
-			return new LangUtils(lang, dict);
-		return new LangUtils(lang, {});
+		if(isWidgetVisible && widget && properties){
+			try {
+				await loadWidget();
+			} catch (error) {
+				showError(e);	
+			}
+		}
+
+		if(!widget || !properties)
+			showMaintenance("Il widget non è supportato da questa versione di square");
+
+		isSetupDone = true;
+
+		return;
 	}
 
 	// Wrapper actions
@@ -213,12 +205,12 @@
 
 	// Prepare the form data object for the widget
 	function getFormData() {
-		let params = new FormData();
+		let params = {};
 		if(token)
-			params.append("token", token);
+			params = { token };
 		else if(apikey)
-			params.append("apikey", apikey);
-		return params
+			params = { apikey };
+		return params;
 	}
 
 	// Update widget state
@@ -243,18 +235,59 @@
 			});
 		if(needSetup){
 			showMaintenance("Il widget richiede un setup", true);
-			return null;
+			return NEED_SETUP;
 		}
 
 		// Load timer refresh
 		if(state && _interval === null && state.hasOwnProperty("_timer_refresh") && typeof(state._timer_refresh) === "number" && state._timer_refresh > 0)
-			reloadEvery(state._timer_refresh).then(() => console.log("INTERVAL REMOVED"));
+			reloadEvery(state._timer_refresh);
 
 		return state;
 	}
 
+	// Reload and reset
+	async function reloadAndReset() {
+
+		console.log("RESET");
+
+		if(isFirstReset || !isSetupDone){
+			isFirstReset = false;
+			return;
+		}
+		// Remove maintenance priority (if enabled)
+		maintenancePriority = false;
+
+		showLoading();
+
+		// Destroy the old instance of the widget (if exist)
+		destroyWidget();
+
+		const WidgetIndex = await import("../../widgets/index");
+
+		widget = await WidgetIndex.getWidget(widgetId);
+
+		properties = await WidgetIndex.getPropreties(widgetId);
+
+		// Create a new instance of the widget
+		try {
+			await loadWidget();
+		} catch (error) {
+			showError(e);	
+		}
+
+		return;
+
+	}
+
 	// Reload the widget
 	function reloadWidget() {
+
+		console.log("RELOAD");
+
+		if(isFirstReload || !isSetupDone){
+			isFirstReload = false;
+			return;
+		}
 
 		// Remove maintenance priority (if enabled)
 		maintenancePriority = false;
@@ -265,7 +298,10 @@
 		destroyWidget();
 		
 		// Create a new instance of the widget
-		loadWidget();
+		loadWidget()
+		.catch(e => {
+			showError(e);
+		});
 
 	}
 
@@ -273,33 +309,38 @@
 	function destroyWidget() {
 		if(WIDGET !== null){
 
-			// Destroy widget
-			WIDGET.$destroy();
-
 			// Remove event listener
+			if(off_message)
+				off_message();
 			if(off_changeOptions)
 				off_changeOptions();
 			if(off_changeChildOptions)
 				off_changeChildOptions();
 
+			// Destroy widget
+			WIDGET.$destroy();
+
 			// Reset variables
 			WIDGET = null;
+			off_message = null;
 			off_changeOptions = null;
 			off_changeChildOptions = null;
 		}
 	}
 
 	// Create a new instance of the widget
-	function loadWidget() {
+	async function loadWidget() {
 
 		// Check if widget is already initialised
-		if(WIDGET !== null || !WIDGET_REF || !isWidgetVisible || !dict)
+		if(WIDGET !== null || !WIDGET_REF || !isWidgetVisible)
 			return;
 
 		let state = getState();
 
-		if(!state)
+		if(state === NEED_SETUP)
 			return;
+
+		const {default: ErrorWrapper} = await import("./ErrorWrapper.svelte");
 
 		// New widget instance
 		WIDGET = new ErrorWrapper({
@@ -307,24 +348,22 @@
 			props: {
 				widget,
 				WIDGET_VISIBLE: true,
-				showResult,
-				showConfirm,
-				showError,
-				showMaintenance,
-				showLoading,
-				showProgressBar,
-				updateProgressBar: showProgressBar,
-				getFormData,
-				saveState,
-				showOptions_,
-				openOptions,
-				getDictionary,
+				lang,
 				state,
+				showContextualOptions,
 				color: _getColor(_theme),
+				formData: getFormData(),
+				id: widgetId,
+				isReady: false
 			}
 		});
 
 		// Trigger events
+		off_message = WIDGET.$on("message", e => {
+			console.log(widgetId, e.detail);
+			handleMessage(e.detail);
+		});
+
 		off_changeOptions = WIDGET.$on("changeOptions", e => {
 			if(showContextualOptions){
 				dispatch("changeOptions", {
@@ -337,6 +376,8 @@
 		off_changeChildOptions = WIDGET.$on("changeChildOptions", e => {
 			dispatch("changeChildOptions", e.detail);
 		});
+
+		WIDGET.$set({isReady: true});
 	}
 
 	// Show options 
@@ -356,17 +397,9 @@
 
 	// Auto refresh handler
 	function reloadEvery(millis) {
-		return new Promise((resolve, reject) => {
-			_interval = setInterval(() => {
-			if(sessionID !== null && sessionID !== window._gridSessionID){
-				console.log("Remove interval...");
-				clearInterval(_interval);
-				_interval = null;
-				resolve();
-			}
+		_interval = setInterval(() => {
 			reloadWidget();
 		}, millis);
-		});
 	}
 
 	// Dispatch contextmenu
@@ -403,130 +436,169 @@
 		}
 	}
 
+	// Check if property exist and is valid
+	function checkProperty(obj, k) {
+		return obj.hasOwnProperty(k) && obj[k];
+	}
+
+	// Handle message from widget
+	function handleMessage(message) {
+		switch(message.title){
+			case "showResult":
+				showResult();
+				break;
+			case "showError":
+				showError(message.text);
+				break;
+			case "showConfirm":
+				showConfirm(message.text);
+				break;
+			case "showMaintenance":
+				showMaintenance(message.text, message.priority);
+				break;
+			case "showLoading":
+				showLoading(message.text);
+				break;
+			case "showProgressBar":
+				showProgressBar(message.text, message.value);
+				break;
+			case "showOptions_":
+				showOptions_();
+				break;
+			case "openOptions":
+				openOptions();
+				break;
+			case "saveState":
+				saveState(message.state, message.reload);
+				break;
+		}
+	}
+
 </script>
 
-<IntersectionObserver 
-	once 
-	element={MAIN_REF} 
-	root={parent} 
-	bind:intersecting={isWidgetVisible}
+<main 
+	bind:this={MAIN_REF}
+	use:Intersect={{once: true}}
 	on:intersect={() => {		
-		if(!isFirstObservation)
-			return;
-		isFirstObservation = false;
-		loadWidget();
+		isWidgetVisible = true;
+		setupWidget();
 	}}
-	>
+>
 
-	<main bind:this={MAIN_REF}>
+	{#if properties}
 
-		{#if properties}
+		<!-- Main -->
+		<main 
+			class="{_getTheme(_theme)} pa-{padding}"
+			style="background: {_getColor(_theme).background}"
+			on:contextmenu={contextmenu}
+		>
 
-			<!-- Main -->
-			<main 
-				class="{_getTheme(_theme)} pa-{padding}"
-				style="background: {_getColor(_theme).background}"
-				on:contextmenu={contextmenu}
-			>
-
-				<!-- Widget content -->
-				<div class="content-widget pa-{padding}">
-						
-					<!-- Widget -->
-					<div bind:this={WIDGET_REF}>
-
-					</div>
+			<!-- Widget content -->
+			<div class="content-widget pa-{padding}">
+					
+				<!-- Widget -->
+				<div bind:this={WIDGET_REF}>
 
 				</div>
 
-				{#if showOptionButton && showOptions}
-					<div class="button-options">
-						<Button icon size="x-small" on:click={() => {
-							dispatch("changeOptions", {
-								widget: widget,
-								state: state
-							});
-						}}>
-							<Icon path={mdiCog} />
-						</Button>
-					</div>
-				{/if}
+			</div>
 
-				<!-- Generic container -->
-				{#if genericContainer}
-					<div class="generic-container" style="background: {_getColor(_theme).background}" transition:blur="{{amount: 10}}">
+			{#if showOptionButton && showOptions}
+				<div class="button-options">
+					<Button icon size="x-small" on:click={() => {
+						dispatch("changeOptions", {
+							widget: widget,
+							state: state
+						});
+					}}>
+						<Icon path={mdiCog} />
+					</Button>
+				</div>
+			{/if}
 
-						<!-- Content generic container -->
-						<div class="content">
+			<!-- Generic container -->
+			{#if genericContainer}
+				<div class="generic-container" style="background: {_getColor(_theme).background}">
 
-							<!-- Icon -->
-							{#if genericContainer.hasOwnProperty("icon") && genericContainer.icon}
-								<div class="icon">
-									<Icon path={genericContainer.icon} size={64} />
-								</div>
-							{/if}
+					<!-- Content generic container -->
+					<div class="content">
 
-							<!-- Circle loading -->
-							{#if genericContainer.hasOwnProperty("showCircleLoading") && genericContainer.showCircleLoading}
-								<div class="icon">
-									<ProgressCircular size={64} indeterminate color={"primary-color"} />
-								</div>
-							{/if}
+						<!-- Icon -->
+						{#if checkProperty(genericContainer, "icon")}
+							<div class="icon">
+								<Icon path={genericContainer.icon} size={64} />
+							</div>
+						{/if}
 
-							<!-- Circle loading -->
-							{#if genericContainer.hasOwnProperty("showProgressBar") && genericContainer.showProgressBar && genericContainer.hasOwnProperty("progressBarValue")}
-								<div class="icon">
-									<ProgressLinear rounded height={"20px"} value={genericContainer.progressBarValue} color={"primary-color"}>
-										<span class="white-text font-weight-bold">
-											{genericContainer.progressBarValue}%
-										</span>
-									</ProgressLinear>
-								</div>
-							{/if}
+						<!-- Circle loading -->
+						{#if checkProperty(genericContainer, "showCircleLoading")}
+							<div class="icon">
+								<ProgressCircular size={64} indeterminate color={"primary-color"} />
+							</div>
+						{/if}
 
-							<!-- Text description -->
-							{#if genericContainer.hasOwnProperty("text") && genericContainer.text}
-								<div class="text text-center pl-1 pr-1">
-									{genericContainer.text}
-								</div>
-							{/if}
+						<!-- Circle loading -->
+						{#if checkProperty(genericContainer, "showProgressBar") && genericContainer.hasOwnProperty("progressBarValue")}
+							<div class="icon">
+								<ProgressLinear rounded height={"20px"} value={genericContainer.progressBarValue} color={"primary-color"}>
+									<span class="white-text font-weight-bold">
+										{genericContainer.progressBarValue}%
+									</span>
+								</ProgressLinear>
+							</div>
+						{/if}
 
-							<!-- Action buttons -->
-							{#if (genericContainer.hasOwnProperty("showReload")  && genericContainer.showReload) || (genericContainer.hasOwnProperty("showConfig")  && genericContainer.showConfig)}
-								<div class="action">
-									<div>
-										{#if genericContainer.hasOwnProperty("showReload")  && genericContainer.showReload}
-											<div>
-												<Button class="primary-color white-text" block depressed size="small" on:click={reloadWidget}>
-													Ricarica
-												</Button>
-											</div>
-										{/if}
+						<!-- Text description -->
+						{#if checkProperty(genericContainer, "text")}
+							<div class="text text-center pl-1 pr-1">
+								{genericContainer.text}
+							</div>
+						{/if}
+
+						<!-- Action buttons -->
+						{#if checkProperty(genericContainer, "showReload") || checkProperty(genericContainer, "showConfig")}
+							<div class="action">
+								<div>
+
+									<!-- Reload button -->
+									{#if checkProperty(genericContainer, "showReload")}
 										<div>
-										{#if showContextualOptions && genericContainer.hasOwnProperty("showConfig")  && genericContainer.showConfig && state}
+											<Button class="primary-color white-text" block depressed size="small" on:click={reloadWidget}>
+												Ricarica
+											</Button>
+										</div>
+									{/if}
+
+									<!-- Space between buttons -->
+									{#if showContextualOptions && checkProperty(genericContainer, "showConfig") && state && checkProperty(genericContainer, "showReload")}
+										<div class="mt-1"></div>
+									{/if}
+
+									<!-- Configure button -->
+									{#if showContextualOptions && checkProperty(genericContainer, "showConfig") && state}
+										<div>
 											<Button class="primary-text" outlined block depressed size="small" on:click={() => {
 												openOptions();
 											}}>
 												Configura
 											</Button>
-										{/if}
 										</div>
-									</div>
+									{/if}
 								</div>
-							{/if}
-
-						</div>
+							</div>
+						{/if}
 
 					</div>
-				{/if}
 
-			</main>
+				</div>
+			{/if}
 
-		{/if}
+		</main>
 
-	</main>
+	{/if}
 
-</IntersectionObserver>
+</main>
 
 <style>
 

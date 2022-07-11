@@ -307,7 +307,7 @@ export default class DataUtils {
         return rgb;
     }
 
-    static getTypes(filter=[]){
+    static getTypes(filter=[], blacklist=[]){
         return [
             "aqi",
             "pm1",
@@ -321,7 +321,7 @@ export default class DataUtils {
             "h2s",
             "temperatura",
             "umidita"
-        ].filter(o => filter.length === 0 || o === "aqi" || filter.includes(o));
+        ].filter(o => (filter.length === 0 || filter.includes(o)) && !blacklist.includes(o));
     }
 
     static getSources(filter=[]){
@@ -330,8 +330,27 @@ export default class DataUtils {
             {name: "SSQ", value: "ssq"}, 
             {name: "Arpa", value: "ARPA"}, 
             {name: "Copernicus", value: "CP"},
-            {name: "Smart Park Milano", value: "SMPA"}
+            {name: "Smart Park Milano", value: "SMPA"},
+            {name: "Sensor Community", value: "SNSC"},
+            {name: "Wiseair", value: "WISE"}
         ].filter(o => filter.length === 0 || (filter.length === 1 && filter[0] === "all") || o.value === "prediction" || filter.includes(o.value));
+    }
+
+    static getSourceName(key){
+        switch (key) {
+            case "ssq":
+                return "SSQ";
+            case "ARPA":
+                return "Arpa";
+            case "CP":
+                return "Copernicus";
+            case "SMPA":
+                return "Smart Park Milano";
+            case "SNSC":
+                return "Sensor Community;"
+            default:
+                return key;
+        }
     }
 
     static getTypeColor(type){
@@ -377,14 +396,10 @@ export default class DataUtils {
                 return "Il VOC è indicativo della presenza di gas organici volatili";
             case "co":
                 return "È una molecola formata da un atomo di carbonio ed uno di ossigeno, è un gas velenoso particolarmente insidioso in quanto inodore e insapore. Il monossido di carbonio viene prodotto da reazioni di combustione in difetto di aria";
-            case "so2":
-                return null;
-            case "h2s":
-                return null;
             case "o3":
                 return "È una molecola formata da tre atomi di ossigeno, ha un caratteristico odore agliaceo. È un inquinante secondario, ovvero prodotto per decomposizione di altre molecole, è molto velenoso se respirato a grandi dosi";
             default:
-                return "#607d8b";
+                return "";
         }
     }
 
@@ -404,14 +419,8 @@ export default class DataUtils {
                 return "Benzene, Toluene, Fenolo, etc.";
             case "co":
                 return "Il valore massimo della media mobile calcolata sulle 8 ore non può superare i 10 mg/m³";
-            case "so2":
-                return null;
-            case "h2s":
-                return null;
-            case "o3":
-                return "Il valore massimo della media mobile calcolata sulle 8 ore non può superare i 10 mg/m³";
             default:
-                return "#607d8b";
+                return "";
         }
     }
 }

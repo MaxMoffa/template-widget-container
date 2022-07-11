@@ -44,7 +44,7 @@ export const CONFIGURATION = [
                         value: "red"
                     },
                     {
-                        name: "blu",
+                        name: "blue",
                         value: "blue"
                     }
                 ]

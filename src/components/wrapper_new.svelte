@@ -4,11 +4,11 @@
 	import { mdiAlertBox, mdiHammerWrench, mdiCog, mdiCheckBold } from '@mdi/js';
 	import { createEventDispatcher, onMount, onDestroy } from 'svelte';
 	import IntersectionObserver from "svelte-intersection-observer";
+	import { createBoundary } from '@crownframework/svelte-error-boundary';
 	import LangUtils from '../utils/lang_utils';
-	import ErrorWrapper from './ErrorWrapper.svelte';
+	import ErrorWrapper from './CustomBoundary.svelte';
 	import { theme, getBackground, getColor } from '../store/theme';
 	import { blur } from 'svelte/transition';
-	import * as WidgetIndex from '../widgets/index';
 
     // Theme handler
     let _theme = "light";
@@ -16,6 +16,9 @@
 
     // Event dispatcher
 	const dispatch = createEventDispatcher();
+
+	// Custom error wrapper
+	const Boundary = createBoundary(ErrorWrapper);
 
     // Props
 	export let token = null;
@@ -34,21 +37,14 @@
     export let sessionID = null;
 	export let parent = null;
 
-	$: state, reloadWidget();
-
 	// Intersection Observer Visibility
 	let isWidgetVisible = false;
-	let isFirstObservation = true;
 
 	// Reload widget
 	let reload = false;
 
 	// Main ref widget
 	let MAIN_REF;
-
-	// Widget ref
-	let WIDGET_REF, WIDGET = null;
-	let off_changeOptions = null, off_changeChildOptions = null;
 
 	// Maintenance priority
 	let maintenancePriority = false;
@@ -59,28 +55,14 @@
 		text: "Caricamento in corso",
 	};
 
-	// Reloader props
-	let _stateID = null;
-
 	// Widget dictionary
 	let dict = false;
 
 	// Auto refresh interval
 	let _interval = null;
 
-	// Show button options (if enabled)
-	let showOptionButton = true;
-
 	// Load the widget dictionary on mount
 	onMount(async () => {
-
-		// Load widget
-		if(!widget)
-			widget = await WidgetIndex.getWidget(widgetId);
-		
-		// Load properties	
-		if(!properties)
-			properties = await WidgetIndex.getPropreties(widgetId);
 
 		// Load dictionary
 		if(widgetId)
@@ -88,25 +70,12 @@
 		else
 			dict = true;
 
-		if(isWidgetVisible && widget && properties)
-			loadWidget();
-
-		if(!widget || !properties)
-			showMaintenance("Il widget non è supportato da questa versione di square")
-
 	});
 
-	// Clear the interval and destroy everything when the widget get removed
+	// Clear the interval when the widget get removed
 	onDestroy(() => {
-
-		// Clear interval (if exists)
 		if(_interval)
 			clearInterval(_interval);
-
-		// Destroy the old instance of the widget (if exist)
-		destroyWidget();
-
-		// Unsubscribe theme store
 		unsubscribeTheme();
 	});
 
@@ -150,11 +119,6 @@
 	}
 
 	function showError(text="") {
-
-		console.error(text);
-
-		destroyWidget();
-
 		if(maintenancePriority)
 			return;
 		genericContainer = {
@@ -176,9 +140,6 @@
 	}
 
 	function showMaintenance(text, priority=false) {
-
-		destroyWidget();
-
 		if(maintenancePriority)
 			return;
 		maintenancePriority = priority;
@@ -196,7 +157,6 @@
 		genericContainer = {
 			showCircleLoading: true,
 			text: text,
-			showReload: true
 		}
 	}
 
@@ -206,8 +166,7 @@
 		genericContainer = {
 			showProgressBar: true,
 			progressBarValue: value,
-			text: text,
-			showReload: true
+			text: text
 		}
 	}
 
@@ -243,7 +202,7 @@
 			});
 		if(needSetup){
 			showMaintenance("Il widget richiede un setup", true);
-			return null;
+			return state;
 		}
 
 		// Load timer refresh
@@ -255,93 +214,26 @@
 
 	// Reload the widget
 	function reloadWidget() {
-
-		// Remove maintenance priority (if enabled)
-		maintenancePriority = false;
-
 		showLoading();
-
-		// Destroy the old instance of the widget (if exist)
-		destroyWidget();
-		
-		// Create a new instance of the widget
-		loadWidget();
-
+		reload = true;
+		maintenancePriority = false;
+		setTimeout(() => {
+			reload = false;
+		}, 100);
 	}
 
-	// Destroy the instance of the widget (if exist)
-	function destroyWidget() {
-		if(WIDGET !== null){
-
-			// Destroy widget
-			WIDGET.$destroy();
-
-			// Remove event listener
-			if(off_changeOptions)
-				off_changeOptions();
-			if(off_changeChildOptions)
-				off_changeChildOptions();
-
-			// Reset variables
-			WIDGET = null;
-			off_changeOptions = null;
-			off_changeChildOptions = null;
-		}
-	}
-
-	// Create a new instance of the widget
-	function loadWidget() {
-
-		// Check if widget is already initialised
-		if(WIDGET !== null || !WIDGET_REF || !isWidgetVisible || !dict)
-			return;
-
-		let state = getState();
-
-		if(!state)
-			return;
-
-		// New widget instance
-		WIDGET = new ErrorWrapper({
-			target: WIDGET_REF,
-			props: {
-				widget,
-				WIDGET_VISIBLE: true,
-				showResult,
-				showConfirm,
-				showError,
-				showMaintenance,
-				showLoading,
-				showProgressBar,
-				updateProgressBar: showProgressBar,
-				getFormData,
-				saveState,
-				showOptions_,
-				openOptions,
-				getDictionary,
-				state,
-				color: _getColor(_theme),
-			}
-		});
-
-		// Trigger events
-		off_changeOptions = WIDGET.$on("changeOptions", e => {
-			if(showContextualOptions){
-				dispatch("changeOptions", {
-					widget: widget,
-					state: state
-				});
-			}
-		});
-
-		off_changeChildOptions = WIDGET.$on("changeChildOptions", e => {
-			dispatch("changeChildOptions", e.detail);
-		});
-	}
-
-	// Show options 
+	//TODO: Eliminare questo metodo
 	function showOptions_() {
-		showOptionButton = true;
+		return;
+		// if(!showOptions)
+		// 	return;
+		// showOptionsBtn = true;
+		// if(!state){
+		// 	dispatch("changeOptions", {
+		// 		widget: widget,
+		// 		state: null
+		// 	})
+		// }
 	}
 
 	// Open widget configurator
@@ -405,126 +297,136 @@
 
 </script>
 
-<IntersectionObserver 
-	once 
-	element={MAIN_REF} 
-	root={parent} 
-	bind:intersecting={isWidgetVisible}
-	on:intersect={() => {		
-		if(!isFirstObservation)
-			return;
-		isFirstObservation = false;
-		loadWidget();
-	}}
-	>
+<IntersectionObserver once element={MAIN_REF} root={parent} bind:intersecting={isWidgetVisible}>
 
-	<main bind:this={MAIN_REF}>
+	{#if widget && properties}
 
-		{#if properties}
+		<!-- Main -->
+		<main 
+			bind:this={MAIN_REF}
+			class="{_getTheme(_theme)} pa-{padding}"
+			style="background: {_getColor(_theme).background}"
+			on:contextmenu={contextmenu}
+		>
 
-			<!-- Main -->
-			<main 
-				class="{_getTheme(_theme)} pa-{padding}"
-				style="background: {_getColor(_theme).background}"
-				on:contextmenu={contextmenu}
-			>
-
-				<!-- Widget content -->
-				<div class="content-widget pa-{padding}">
-						
+			<!-- Widget content -->
+			<div class="content-widget">
+				<Boundary onError={showError}>
+					
 					<!-- Widget -->
-					<div bind:this={WIDGET_REF}>
-
+					<div>
+						{#if isWidgetVisible && !reload && dict}
+						
+							<svelte:component
+								this={widget} 
+								WIDGET_VISIBLE={genericContainer === null}
+								{showResult}
+								{showConfirm}
+								{showError}
+								{showMaintenance}
+								{showLoading}
+								{showProgressBar}
+								updateProgressBar={showProgressBar}
+								{getFormData}
+								state={getState()}
+								{saveState}
+								{showOptions_}
+								{openOptions}
+								{getDictionary}
+								color={_getColor(_theme)}
+								on:changeOptions={() => {
+									if(showContextualOptions){
+										dispatch("changeOptions", {
+											widget: widget,
+											state: state
+										});
+									}
+								}}
+								on:changeChildOptions={(e) => {
+									dispatch("changeChildOptions", e.detail);
+								}}
+							/>
+						
+						{/if}
 					</div>
 
-				</div>
+				</Boundary>
+			</div>
 
-				{#if showOptionButton && showOptions}
-					<div class="button-options">
-						<Button icon size="x-small" on:click={() => {
-							dispatch("changeOptions", {
-								widget: widget,
-								state: state
-							});
-						}}>
-							<Icon path={mdiCog} />
-						</Button>
-					</div>
-				{/if}
+			<!-- Generic container -->
+			{#if genericContainer}
+				<div class="generic-container" style="background: {_getColor(_theme).background}" transition:blur="{{amount: 10}}">
 
-				<!-- Generic container -->
-				{#if genericContainer}
-					<div class="generic-container" style="background: {_getColor(_theme).background}" transition:blur="{{amount: 10}}">
+					<!-- Content generic container -->
+					<div class="content">
 
-						<!-- Content generic container -->
-						<div class="content">
+						<!-- Icon -->
+						{#if genericContainer.hasOwnProperty("icon") && genericContainer.icon}
+							<div class="icon">
+								<Icon path={genericContainer.icon} size={64} />
+							</div>
+						{/if}
 
-							<!-- Icon -->
-							{#if genericContainer.hasOwnProperty("icon") && genericContainer.icon}
-								<div class="icon">
-									<Icon path={genericContainer.icon} size={64} />
-								</div>
-							{/if}
+						<!-- Circle loading -->
+						{#if genericContainer.hasOwnProperty("showCircleLoading") && genericContainer.showCircleLoading}
+							<div class="icon">
+								<ProgressCircular size={64} indeterminate color={"primary-color"} />
+							</div>
+						{/if}
 
-							<!-- Circle loading -->
-							{#if genericContainer.hasOwnProperty("showCircleLoading") && genericContainer.showCircleLoading}
-								<div class="icon">
-									<ProgressCircular size={64} indeterminate color={"primary-color"} />
-								</div>
-							{/if}
+						<!-- Circle loading -->
+						{#if genericContainer.hasOwnProperty("showProgressBar") && genericContainer.showProgressBar && genericContainer.hasOwnProperty("progressBarValue")}
+							<div class="icon">
+								<ProgressLinear rounded height={"20px"} value={genericContainer.progressBarValue} color={"primary-color"}>
+									<span class="white-text font-weight-bold">
+										{genericContainer.progressBarValue}%
+									</span>
+								</ProgressLinear>
+							</div>
+						{/if}
 
-							<!-- Circle loading -->
-							{#if genericContainer.hasOwnProperty("showProgressBar") && genericContainer.showProgressBar && genericContainer.hasOwnProperty("progressBarValue")}
-								<div class="icon">
-									<ProgressLinear rounded height={"20px"} value={genericContainer.progressBarValue} color={"primary-color"}>
-										<span class="white-text font-weight-bold">
-											{genericContainer.progressBarValue}%
-										</span>
-									</ProgressLinear>
-								</div>
-							{/if}
+						<!-- Text description -->
+						{#if genericContainer.hasOwnProperty("text") && genericContainer.text}
+							<div class="text">
+								{genericContainer.text}
+							</div>
+						{/if}
 
-							<!-- Text description -->
-							{#if genericContainer.hasOwnProperty("text") && genericContainer.text}
-								<div class="text text-center pl-1 pr-1">
-									{genericContainer.text}
-								</div>
-							{/if}
-
-							<!-- Action buttons -->
-							{#if (genericContainer.hasOwnProperty("showReload")  && genericContainer.showReload) || (genericContainer.hasOwnProperty("showConfig")  && genericContainer.showConfig)}
-								<div class="action">
-									<div>
-										{#if genericContainer.hasOwnProperty("showReload")  && genericContainer.showReload}
-											<div>
-												<Button class="primary-color white-text" block depressed size="small" on:click={reloadWidget}>
-													Ricarica
-												</Button>
-											</div>
-										{/if}
+						<!-- Action buttons -->
+						{#if (genericContainer.hasOwnProperty("showReload")  && genericContainer.showReload) || (genericContainer.hasOwnProperty("showConfig")  && genericContainer.showConfig)}
+							<div class="action">
+								<div>
+									{#if genericContainer.hasOwnProperty("showReload")  && genericContainer.showReload}
 										<div>
-										{#if showContextualOptions && genericContainer.hasOwnProperty("showConfig")  && genericContainer.showConfig && state}
+											<Button class="primary-color white-text" block depressed size="small" on:click={reloadWidget}>
+												Ricarica
+											</Button>
+										</div>
+									{/if}
+									<div>
+										{#if genericContainer.hasOwnProperty("showConfig")  && genericContainer.showConfig && state}
 											<Button class="primary-text" outlined block depressed size="small" on:click={() => {
-												openOptions();
+												dispatch("changeOptions", {
+													widget: widget,
+													state: state
+												});
 											}}>
 												Configura
 											</Button>
 										{/if}
-										</div>
 									</div>
 								</div>
-							{/if}
-
-						</div>
+							</div>
+						{/if}
 
 					</div>
-				{/if}
 
-			</main>
+				</div>
+			{/if}
 
-		{/if}
+		</main>
 
-	</main>
+	{/if}
 
 </IntersectionObserver>
 
@@ -532,10 +434,9 @@
 
 	/* Main */
 	main {
-		position: relative;
 		width: 100%;
         height: 100%;
-		overflow: hidden !important;
+		overflow: hidden;
 	}
 
 	/* Widget space */
@@ -546,18 +447,11 @@
 		width: 100%;
 		height: 100%;
 		z-index: 0;
-		overflow: hidden;
-	}
-
-	:global(.content-widget > div) {
-		width: 100%;
-		height: 100% !important;
-		overflow-y: auto;
 	}
 
 	/* Generic container */
 	.generic-container {
-		position: absolute;
+		position: relative;
 		top: 0;
 		left: 0;
 		width: 100%;
@@ -585,13 +479,6 @@
 
 	.generic-container > .content > .action {
 		padding-top: 32px;
-	}
-
-	/* Button options */
-	.button-options {
-		position: absolute;
-		top: 4px;
-		right: 4px;
 	}
 
 </style>

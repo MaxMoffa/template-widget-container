@@ -4,7 +4,7 @@
 
 <script>
   import * as properties from "./widgets/widget/Constants";
-  import Wrapper from "./components/Wrapper.svelte";
+  import Wrapper from "./components/Wrapper/Wrapper.svelte";
   import WidgetOptions from './components/widgetOptions.svelte';
   import Grid from "svelte-grid";
   import gridHelp from "svelte-grid/build/helper/index.mjs";
@@ -149,7 +149,7 @@
               {#if isResizable}
 
                 <!-- Modify mode content -->
-                <div class="modify">
+                <div class="modify white">
 
                   <div>
 

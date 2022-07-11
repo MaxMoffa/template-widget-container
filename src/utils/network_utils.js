@@ -4,13 +4,37 @@
       col server ed altro riguardo i collegamenti in rete
 */
 
+export const SENSESQUARE_SERVER_URL_BACKEND = "ssub";
+
 export default class NetworkUtils {
 
-    static server = "square.sensesquare.eu";
+  static server_prod = "square.sensesquare.eu";
+  static server_beta = "beta.sensesquare.eu";
+
+  static getServerUrl = () => {
+    let d = localStorage.getItem(SENSESQUARE_SERVER_URL_BACKEND);
+    if(d){
+      if(d === "b")
+        return this.server_beta;
+      else
+        return this.server_prod;
+    }
+    return this.server_prod;
+  }
+
+    static server = this.getServerUrl();
     //static nominatim = "https://eu1.locationiq.com/v1";
     static nominatim = "https://nominatim.sensesquare.eu/nominatim/";
     static server_lettura = `https://${this.server}:5001/`;
     static server_utenti = `https://${this.server}:5002/`;
+
+    static setServer(server) {
+      this.server = server;
+    }
+
+    static getServer() {
+      return this.server;
+    }
 
     static cloneFormdata(formData) {
       if(!formData || !(formData instanceof FormData))

@@ -368,7 +368,7 @@
         grid_resize_timer = setTimeout(() => {
             updateGridRowHeight();
             isContentVisible = true;
-        }, 1000);
+        }, 0);
     }
 
 </script>
@@ -398,6 +398,7 @@
                 {#if isContextMenuVisible && isCustomizable(isContextMenuVisible.item.state)}
                     <ListItem on:click={() => {
                         optionsDataItem = isContextMenuVisible.item;
+                        modifyMode = true;
                         isContextMenuVisible = null;
                     }}>
                         {dictionary.getString("modify")}
@@ -514,6 +515,7 @@
                                 widget={dataItem.widget} 
                                 state={dataItem.hasOwnProperty("state") ? dataItem.state : null}
                                 parent={getContainer()}
+                                showContextualOptions={isGridCustomizable}
                                 disableContextMenu
                                 on:saveState={(e) => {
                                     dataItem.state = e.detail;                                    
@@ -521,9 +523,11 @@
                                 }}
                                 on:changeOptions={(e) => {
                                     optionsDataItem = dataItem;
+                                    modifyMode = true;
                                 }}
                                 on:changeChildOptions={(e) => {
                                     optionsDataItem = e.detail;
+                                    modifyMode = true;
                                 }}
                                 on:contextmenu={(e) => showContextMenu(dataItem, e)}
                                 {...params}

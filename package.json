@@ -23,6 +23,7 @@
   "dependencies": {
     "@crownframework/svelte-error-boundary": "^1.0.3",
     "@mdi/js": "^5.9.55",
+    "chart.js": "^3.7.1",
     "leaflet": "^1.7.1",
     "moment": "^2.29.1",
     "postcss": "^8.3.5",

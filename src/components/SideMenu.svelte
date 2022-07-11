@@ -154,20 +154,35 @@
                             
                         {/each}
 
-                        <!-- <div class="widget-container">
+                        <div class="widget-container">
 
                             <WidgetElement 
-                                icon={"mdiBeta"}
-                                title={"Widget Risk ß"}
+                                icon={"mdiImage"}
+                                title={"Image"}
                                 background={"#ABCDEF"}
                                 maxDimension
                                 on:click={() => {
-                                    dispatch("addWidget", "widget_geomap_risk");
+                                    dispatch("addWidget", "widget_image");
                                     closeMenu();
                                 }}
                             />
                             
-                        </div> -->
+                        </div>
+
+                        <div class="widget-container">
+
+                            <WidgetElement 
+                                icon={"mdiBeta"}
+                                title={"Esempio Input"}
+                                background={"#ABCDEF"}
+                                maxDimension
+                                on:click={() => {
+                                    dispatch("addWidget", "widget_example_input");
+                                    closeMenu();
+                                }}
+                            />
+                            
+                        </div>
 
                     {/await}                    
                     
