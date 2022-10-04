@@ -14,7 +14,7 @@
             else if(typeof(i) === "object" && i.hasOwnProperty("key"))
                 return i.key.toLowerCase().includes(q.toLowerCase());
             return false;
-        })
+        });
     };
     export let disabled = false;
     export let getParams = () => new FormData();
@@ -22,6 +22,7 @@
     export let outlined = false;
     export let filled = false;
     export let solo = false;
+    export let mandatory = true;
 
     let _value = "";
     let oldValue = value;
@@ -31,7 +32,7 @@
         else if(typeof(value) === "object" && value.hasOwnProperty("key") && value.key)
             _value = value.key;
     }
-    console.log(_value);
+
     let showSuggestion = false;
     let input;
 
@@ -68,7 +69,7 @@
             classClick = classClick.className;
         }
         if(typeof(classClick) !== "string"){
-            if(oldValue){
+            if(oldValue && mandatory){
                 if(typeof(oldValue) === "string"){
                     _value = value = oldValue;
                 }else if(oldValue.value){
@@ -93,11 +94,11 @@
     }
 
     function detectClear() {
-        if(!_value && value !== null && (typeof(value) !== "object" || value.key !== null)){
+        if(!_value && oldValue){
             _value = "";
+            value = null;
             if(input)
                 input.focus();
-            showSuggestion = true;
         }
     }
 

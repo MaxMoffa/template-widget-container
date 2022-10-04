@@ -2,7 +2,7 @@
 
     import { ProgressCircular, ProgressLinear, Icon, Button, Intersect } from 'svelte-materialify/src';
 	import { mdiAlertBox, mdiHammerWrench, mdiCog, mdiCheckBold } from '@mdi/js';
-	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+	import { afterUpdate, createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { theme, getBackground, getColor } from '../../store/theme';
 
     // Theme handler
@@ -20,6 +20,7 @@
 	export let disableContextMenu = false;
 	export let widgetId = null;
 	export let lang = "en";
+	export let disableSetup = false;
 
 	//TODO: Capire quali di questi servono o meno
 	export let widget;
@@ -28,8 +29,7 @@
 	export let padding = 0;
 
 	// TODO: Capire come risolvere il bug del refresh anomalo
-	// $: state, reloadWidget();
-	$: widgetId, reloadAndReset();
+	// $: state, stateChanged();
 
 	// Const
 	const NEED_SETUP = "needSetup";
@@ -64,8 +64,12 @@
 	let isFirstReload = true;
 	let isSetupDone = false;
 
+	// Check changes
+	let isFirstStart = false;
+
 	onMount(() => {
 
+		// Setup widget
 		setupWidget();
 
 	});
@@ -101,8 +105,17 @@
 		
 	});
 
+	function stateChanged() {
+		if(!isFirstStart)
+			reloadWidget();
+		else
+			isFirstStart = false;
+	}
+
 	// Load the widget
 	async function setupWidget() {
+
+		console.log(!widget || !properties);
 
 		if(!widget || !properties){
 
@@ -153,7 +166,8 @@
 			icon: mdiAlertBox,
 			text: text,
 			showReload: true,
-			showConfig: true
+			showConfig: true,
+			showReset: true
 		}
 	}
 
@@ -214,8 +228,9 @@
 	}
 
 	// Update widget state
-	function saveState(state, reload=true) {
-		dispatch("saveState", state);
+	function saveState(_state, reload=true) {
+		state = _state;
+		dispatch("saveState", _state);
 		if(reload)
 			reloadWidget();
 	}
@@ -225,7 +240,7 @@
 
 		// Check if need setup
 		let needSetup = false;
-		if(state && typeof(state) === "object")
+		if(!disableSetup && state && typeof(state) === "object")
 			Object.keys(state).forEach(key => {
 				if(state[key] === null)
 					needSetup = true;
@@ -233,7 +248,7 @@
 					if(state[key].hasOwnProperty("value") && state[key].value === null)
 						needSetup = true; 
 			});
-		if(needSetup){
+		if(!disableSetup && needSetup){
 			showMaintenance("Il widget richiede un setup", true);
 			return NEED_SETUP;
 		}
@@ -254,6 +269,10 @@
 			isFirstReset = false;
 			return;
 		}
+
+		console.log("RESET CONFIRM");
+
+		
 		// Remove maintenance priority (if enabled)
 		maintenancePriority = false;
 
@@ -320,6 +339,10 @@
 			// Destroy widget
 			WIDGET.$destroy();
 
+			// Remove widget from html
+			if(WIDGET_REF?.firstChild && WIDGET_REF.firstChild)
+				WIDGET_REF.removeChild(WIDGET_REF.firstChild)
+
 			// Reset variables
 			WIDGET = null;
 			off_message = null;
@@ -342,6 +365,9 @@
 
 		const {default: ErrorWrapper} = await import("./ErrorWrapper.svelte");
 
+		// Fullfill the widgets requirements
+		const data = await getWidgetData();
+
 		// New widget instance
 		WIDGET = new ErrorWrapper({
 			target: WIDGET_REF,
@@ -354,7 +380,8 @@
 				color: _getColor(_theme),
 				formData: getFormData(),
 				id: widgetId,
-				isReady: false
+				isReady: false,
+				data
 			}
 		});
 
@@ -471,7 +498,50 @@
 			case "saveState":
 				saveState(message.state, message.reload);
 				break;
+			default:
+				dispatch(message.title, message)
 		}
+	}
+
+	// Get additional data required by the widget
+	async function getWidgetData() {
+
+		// Check proprieties
+		if(!properties)
+			return null;
+
+		// Check requirements
+		if(!properties?.REQUIREMENTS || !Array.isArray(properties.REQUIREMENTS) || properties.REQUIREMENTS.length === 0)
+			return null;
+
+		let result = {};
+
+		// Get all data
+		properties.REQUIREMENTS.forEach(requirement => {
+
+			switch(requirement) {
+
+				case "user": {
+					let user = localStorage.getItem("user-info") || sessionStorage.getItem("user-info")
+					user = user ? JSON.parse(user) : null;
+					result.user = user;
+					break;
+				};
+
+				default : {
+					result[requirement] = null;
+				}
+			}
+
+		});
+
+		return result;
+
+	}
+
+	// Reset widget state
+	function resetWidget() {
+		saveState(null, true);
 	}
 
 </script>
@@ -566,6 +636,20 @@
 										<div>
 											<Button class="primary-color white-text" block depressed size="small" on:click={reloadWidget}>
 												Ricarica
+											</Button>
+										</div>
+									{/if}
+
+									<!-- Space between buttons -->
+									{#if state && checkProperty(genericContainer, "showReset") && checkProperty(genericContainer, "showReload")}
+										<div class="mt-1"></div>
+									{/if}
+
+									<!-- Reload button -->
+									{#if state && checkProperty(genericContainer, "showReset")}
+										<div>
+											<Button class="primary-color white-text" block depressed size="small" on:click={resetWidget}>
+												Reset
 											</Button>
 										</div>
 									{/if}

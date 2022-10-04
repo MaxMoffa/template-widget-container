@@ -19,6 +19,7 @@
     export let showContextualOptions;
     export let id;
     export let isReady = false;
+    export let data = null;
 
 </script>
 
@@ -40,11 +41,9 @@
             {color}
             {showContextualOptions}
             {id}
+            {data}
 
-            on:message={e => {
-                if(e.detail.title === "showResult")
-                    console.log(id, "SHOW RESULT");
-                    
+            on:message={e => {                    
                 dispatch("message", e.detail);
             }}
             on:changeOptions={e => {

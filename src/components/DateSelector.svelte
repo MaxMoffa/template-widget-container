@@ -19,20 +19,20 @@
     export let min = null;
     export let max = null;
 
-    console.log(value);
-
     if(datetime && (date || time)){
         date = false;
         time = false;
     }
 
+    $: value, valueUpdate();
+
     let _date = getDate();
     let _time = getTime();
     let _datetime = getDateTime();
 
-    let hasDateValue = false;
-    let hasTimeValue = false;
-    let hasDatetimeValue = false;
+    let hasDateValue = _date !== "";
+    let hasTimeValue = _time !== "";
+    let hasDatetimeValue = _datetime !== "";
 
     let nowSelected = false;
 
@@ -42,7 +42,7 @@
 
     const update = (e) => {
         if(value)
-        nowSelected = false;
+            nowSelected = false;
         hasDateValue = Boolean(_date);
         hasTimeValue = Boolean(_time);
         hasDatetimeValue = Boolean(_datetime);
@@ -132,6 +132,16 @@
         if(val === "today")
             return false;
         return moment(val).isSame(moment());
+    }
+
+    function valueUpdate() {
+        _date = getDate();
+        _time = getTime();
+        _datetime = getDateTime();
+
+        hasDateValue = _date !== "";
+        hasTimeValue = _time !== "";
+        hasDatetimeValue = _datetime !== "";
     }
 
 </script>

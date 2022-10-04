@@ -41,3 +41,15 @@ export const getColor = (theme="light") => {
         return "white";
     return "black";
 }
+
+export const getBackgroundInverted = (theme="light") => {
+    if(theme === "light")
+        return "grey darken-3";
+    return "grey lighten-3";
+}
+
+export const getColorInverted = (theme="light") => {
+    if(theme === "light")
+        return "black";
+    return "white";
+}

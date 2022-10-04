@@ -12,6 +12,7 @@
     import * as WidgetIndex from "../../widgets/index";
     import domtoimage from 'dom-to-image';
     import gridHelp from "svelte-grid/build/helper/index.mjs";
+    import Configurator from "../Configurator/Configurator.svelte";
 
     // Dispatch a custom event
     const dispatch = createEventDispatcher();
@@ -205,10 +206,14 @@
     // Update the grid, destroy the older instance and create a new one
     async function _updateGrid() {
 
+        console.log("test0");
+
         if(skipUpdate){
             skipUpdate = false;
             return;
         }    
+
+        console.log("test1");
 
         if(items === null || (Array.isArray(items) && items.length === 0)){
             destroyGrid();
@@ -217,11 +222,15 @@
             return;
         }
 
+        console.log("test2");
+
         // Verify if grid is getting an update
         if(isGridUpdate){
             isGridUpdate = false;
             return;
         }
+
+        console.log("test3");
 
         // Verify if grid is already getting ready
         if(isGridGettingReady)
@@ -617,7 +626,7 @@
     </div>
 
     <!-- Widget configurator -->
-    {#if optionsDataItem !== null && isGridCustomizable}
+    <!-- {#if optionsDataItem !== null && isGridCustomizable}
 
         <WidgetOptions 
             widget={optionsDataItem.widget} 
@@ -645,7 +654,28 @@
             }}
         />
 
-    {/if}
+    {/if} -->
+
+    <!-- NEW Widget configurator -->
+    <Configurator 
+        active={optionsDataItem !== null && isGridCustomizable}
+        state={optionsDataItem?.state} 
+        widgetId={optionsDataItem?.propreties.WIDGET_ID}
+        dict={dictionary}
+        {apikey}
+        {token} 
+        on:saveState={(e) => {
+            optionsDataItem.state = e.detail;
+            optionsDataItem = null;
+
+            if(!modifyMode){
+                items = simplifyGrid(itemsElaborated);
+                isGridUpdate = true;
+                dispatch("update", items);
+            }
+
+        }}
+    />
 
     <!-- Screenshot dialog -->
     <ScreenshotDialog image={img} bind:active={showScreenshotDialog} />

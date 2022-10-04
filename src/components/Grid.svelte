@@ -16,6 +16,7 @@
 	import LangUtils from '../utils/lang_utils';
     import ScreenshotDialog from './ScreenshotDialog.svelte';
     import { theme, getColor, getBackground } from '../store/theme';
+    import Configurator from './Configurator/Configurator.svelte';
     const dispatch = createEventDispatcher();
 
     export let token = null;
@@ -553,7 +554,7 @@
 
     {/if}
 
-    {#if optionsDataItem !== null && isGridCustomizable}
+    <!-- {#if optionsDataItem !== null && isGridCustomizable}
 
         <WidgetOptions 
             widget={optionsDataItem.widget} 
@@ -579,7 +580,28 @@
             }}
         />
 
-    {/if}
+    {/if} -->
+
+    <Configurator 
+        active={optionsDataItem !== null && isGridCustomizable}
+        state={optionsDataItem.state} 
+        widgetId={optionsDataItem.propreties.WIDGET_ID}
+        dict={dictionary}
+        name={optionsDataItem.propreties.WIDGET_NAME}
+        background={optionsDataItem.propreties.BACKGROUND}
+        configuration={optionsDataItem.propreties.CONFIGURATION}
+        {apikey}
+        {token} 
+        on:saveState={(e) => {
+            optionsDataItem.state = e.detail;
+            updateGrid();
+            optionsDataItem = null;
+            updateWidget = true;
+            setTimeout(() => {
+                updateWidget = false;
+            }, 0);
+        }}
+    />
 
     <ScreenshotDialog image={img} bind:active={showScreenshotDialog} />
 

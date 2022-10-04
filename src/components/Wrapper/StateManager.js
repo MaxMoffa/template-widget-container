@@ -84,11 +84,18 @@ export default class StateManager {
         this.send_message("showOptions_");
     }
 
-    // Open widget configurator
-    openOptions() {
-        this.send_message("openOptions");
+    downloadStarted() {
+        this.send_message("downloadStarted");
     }
 
+    downloadStarted() {
+        this.send_message("downloadStarted");
+    }
+
+    // Open widget configurator
+    downloadEnded() {
+        this.send_message("downloadEnded");
+    }
 
     // Get form data object
     getFormData() {

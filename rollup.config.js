@@ -48,6 +48,12 @@ export default {
 				dev: !production
 			},
 
+			experimental: {
+                dynamicCompileOptions({ filename, compileOptions }) {
+                    return { hydratable: true };
+                }
+            },
+
 			// For svelte-materialify
 			preprocess
 		}),
